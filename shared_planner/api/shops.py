@@ -15,7 +15,7 @@ timerange_router = APIRouter(prefix="/timeranges", tags=["timeranges"])
 class ShopWithoutTimeRanges(BaseModel):
     """Data model for shop without time ranges."""
 
-    id: int = None
+    id: int | None = None
     name: str
     description: str
     location: str
@@ -47,7 +47,7 @@ def get_shop(shop_id: int) -> ShopWithTimeRanges:
     with SessionLock() as session:
         shop = session.get(Shop, shop_id)
         if shop is None:
-            raise HTTPException(status_code=404, detail="Shop not found")
+            raise HTTPException(status_code=404, detail="error.shop.not_found")
 
         result = ShopWithTimeRanges(
             open_ranges=[],
@@ -109,7 +109,7 @@ def delete_shop(shop_id: int) -> None:
     with SessionLock() as session:
         shop = session.get(Shop, shop_id)
         if shop is None:
-            raise HTTPException(status_code=404, detail="Shop not found")
+            raise HTTPException(status_code=404, detail="error.shop.not_found")
         session.delete(shop)
         session.commit()
     return None
@@ -121,8 +121,13 @@ def update_shop(shop_id: int, shop_data: ShopWithoutTimeRanges) -> Shop:
     with SessionLock() as session:
         shop = session.get(Shop, shop_id)
         if shop is None:
-            raise HTTPException(status_code=404, detail="Shop not found")
-        shop.update(shop_data.model_dump())
+            raise HTTPException(status_code=404, detail="error.shop.not_found")
+        if shop_data.id is not None:
+            if shop_data.id != shop.id:
+                raise HTTPException(status_code=400, detail="error.shop.id_mismatch")
+        else:
+            shop_data.id = shop_id
+        session.add(shop_data)
         session.commit()
         session.refresh(shop)
     return shop
@@ -134,26 +139,26 @@ def create_time_range(shop_id: int, time_range: TimeRange) -> OpeningTime:
     with SessionLock() as session:
         shop = session.get(Shop, shop_id)
         if shop is None:
-            raise HTTPException(status_code=404, detail="Shop not found")
+            raise HTTPException(status_code=404, detail="error.shop.not_found")
 
         # Check for overlapping time ranges
         for existing_time_range in shop.open_ranges:
             if existing_time_range.day == time_range.day:
                 if (
                     existing_time_range.start_time <= time_range.start_time
-                    and existing_time_range.end_time >= time_range.start_time
+                    and existing_time_range.end_time > time_range.start_time
                 ) or (
-                    existing_time_range.start_time <= time_range.end_time
+                    existing_time_range.start_time < time_range.end_time
                     and existing_time_range.end_time >= time_range.end_time
                 ):
                     raise HTTPException(
                         status_code=400,
-                        detail="Time range overlaps or touches an existing time range",
+                        detail="error.shop.time_range_overlap",
                     )
         # Check that the time range is longer than 0
         if time_range.start_time >= time_range.end_time:
             raise HTTPException(
-                status_code=400, detail="Time range must be longer than 0"
+                status_code=400, detail="error.shop.negative_time_range"
             )
 
         new_time_range = OpeningTime(shop=shop, **time_range.model_dump())
@@ -171,7 +176,9 @@ def delete_time_range(time_range_id: int) -> None:
     with SessionLock() as session:
         time_range = session.get(OpeningTime, time_range_id)
         if time_range is None:
-            raise HTTPException(status_code=404, detail="Time range not found")
+            raise HTTPException(
+                status_code=404, detail="error.shop.time_range_not_found"
+            )
         session.delete(time_range)
         session.commit()
     return None
@@ -183,7 +190,9 @@ def update_time_range(time_range_id: int, new_tr: TimeRange) -> OpeningTime:
     with SessionLock() as session:
         time_range = session.get(OpeningTime, time_range_id)
         if time_range is None:
-            raise HTTPException(status_code=404, detail="Time range not found")
+            raise HTTPException(
+                status_code=404, detail="error.shop.time_range_not_found"
+            )
 
         time_range.day = new_tr.day
         time_range.start_time = new_tr.start_time

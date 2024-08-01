@@ -1,7 +1,7 @@
 import re
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Form, HTTPException
+from fastapi import APIRouter, Depends, Form, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from sqlmodel import select
@@ -18,14 +18,14 @@ class UserResult(BaseModel):
     """Data model for getting a user profile"""
 
     id: int
-    mail: str
+    email: str
     full_name: str
     admin: bool
 
     @classmethod
     def from_user(cls, user: User) -> "UserResult":
         return cls(
-            mail=user.email, full_name=user.full_name, admin=user.admin, id=user.id
+            email=user.email, full_name=user.full_name, admin=user.admin, id=user.id
         )
 
 
@@ -36,23 +36,29 @@ def CurrentToken(access_token: Annotated[str, Depends(_oauth2_scheme)]) -> Token
         token = session.exec(statement).first()
 
         if token is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
+            raise HTTPException(status_code=401, detail="error.token.invalid")
 
         if token.is_expired():
             session.delete(token)
-            raise HTTPException(status_code=401, detail="Token expired")
+            raise HTTPException(status_code=401, detail="error.token.expired")
     return token
 
 
 def CurrentUser(access_token: Annotated[Token, Depends(CurrentToken)]) -> User:
     """Get the current user from the access token"""
-    return access_token.user
+    with SessionLock() as session:
+        statement = select(User).where(User.id == access_token.user_id)
+        user = session.exec(statement).first()
+
+        if user is None:
+            raise HTTPException(status_code=404, detail="error.auth.user_not_found")
+    return user
 
 
 def CurrentAdmin(user: Annotated[User, Depends(CurrentUser)]) -> User:
     """Get the current user from the access token"""
     if not user.admin:
-        raise HTTPException(status_code=403, detail="User is not an admin")
+        raise HTTPException(status_code=403, detail="error.admin.required")
     return user
 
 
@@ -71,9 +77,9 @@ def login(
         user = session.exec(statement).first()
 
         if user is None:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(status_code=404, detail="error.auth.user_not_found")
         if not user.check_password(credentials.password):
-            raise HTTPException(status_code=401, detail="Invalid password")
+            raise HTTPException(status_code=401, detail="error.auth.invalid_password")
 
         token = Token.create_token(user)
         session.add(token)
@@ -87,21 +93,23 @@ def register(
     email: Annotated[str, Form()],
     full_name: Annotated[str, Form()],
     password: Annotated[str, Form()],
-    group: Annotated[str, Form(default=None)],
+    group: str = Form(default=None),
 ) -> Token:
     with SessionLock() as session:
         statement = select(User).where(User.email == email)
         if session.exec(statement).first() is not None:
-            raise HTTPException(status_code=409, detail="Email already registered")
+            raise HTTPException(status_code=409, detail="error.auth.email_exists")
 
         if len(password) < 6:
-            raise HTTPException(status_code=400, detail="Password too short")
+            raise HTTPException(status_code=400, detail="error.auth.password_too_short")
 
         if len(full_name) < 3:
-            raise HTTPException(status_code=400, detail="Full name too short")
+            raise HTTPException(
+                status_code=400, detail="error.auth.full_name_too_short"
+            )
 
         if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            raise HTTPException(status_code=400, detail="Invalid email")
+            raise HTTPException(status_code=400, detail="error.auth.email_invalid")
 
         new_user = User(full_name=full_name, email=email, group=group, admin=False)
         new_user.set_password(password)

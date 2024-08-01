@@ -6,17 +6,24 @@ from shared_planner.db.models import User, Shop, OpeningTime, Reservation, Token
 from threading import Lock
 
 
-class SessionLock:
-    __instance = None
+class Singleton(type):
+    _instances = {}
 
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            instance = super(Singleton, cls).__call__(*args, **kwargs)
+            cls._instances[cls] = instance
+        return cls._instances[cls]
+
+
+class SessionLock(metaclass=Singleton):
     engine: Engine
-    db_mutex: Lock = Lock()
 
-    def __new__(cls):
-        if cls.__instance is None:
-            cls.__instance = super(SessionLock, cls).__new__(cls)
-            cls.__instance.engine = create_engine("sqlite:///database.db")
-        return cls.__instance
+    def __init__(self):
+        self.db_mutex = Lock()
+        self.db_mutex.acquire()
+        self.engine = create_engine("sqlite:///database.db")
+        self.db_mutex.release()
 
     def __enter__(self) -> _Session:
         self.db_mutex.acquire()

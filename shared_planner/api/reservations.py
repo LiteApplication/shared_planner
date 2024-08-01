@@ -59,10 +59,10 @@ def get_planning(
     with SessionLock() as session:
         shop = session.get(Shop, shop_id)
         if shop is None:
-            raise HTTPException(status_code=404, detail="Shop not found")
+            raise HTTPException(status_code=404, detail="error.shop.not_found")
 
         if week < 0 or week > 52:
-            raise HTTPException(status_code=400, detail="Invalid week number")
+            raise HTTPException(status_code=400, detail="error.shop.invalid_week")
 
         # load the time ranges of the shop
         used_ranges = shop.reservations
@@ -97,7 +97,7 @@ def book_time_range(
     with SessionLock() as session:
         shop = session.get(Shop, shop_id)
         if shop is None:
-            raise HTTPException(status_code=404, detail="Shop not found")
+            raise HTTPException(status_code=404, detail="error.shop.not_found")
 
         # Check that the number of overlapping reservations is less than shop.volunteers
         overlap_check = []
@@ -114,9 +114,7 @@ def book_time_range(
         for change, _ in overlap_check:
             overlap_count += change
             if overlap_count > shop.volunteers:
-                raise HTTPException(
-                    status_code=400, detail="Too many overlapping reservations"
-                )
+                raise HTTPException(status_code=400, detail="error.reservation.overlap")
 
         new_reservation = Reservation(
             user_id=user.id,
@@ -139,14 +137,12 @@ def cancel_reservation(
     with SessionLock() as session:
         reservation = session.get(Reservation, reservation_id)
         if reservation is None:
-            raise HTTPException(status_code=404, detail="Reservation not found")
+            raise HTTPException(status_code=404, detail="error.reservation.not_found")
         if reservation.user_id != user.id or not user.admin:
-            raise HTTPException(
-                status_code=403, detail="Not allowed to cancel this reservation"
-            )
+            raise HTTPException(status_code=403, detail="error.reservation.cant_cancel")
         if reservation.validated:
             raise HTTPException(
-                status_code=400, detail="Cannot cancel a validated reservation"
+                status_code=400, detail="error.reservation.cant_cancel_validated"
             )
         session.delete(reservation)
         session.commit()
@@ -159,7 +155,7 @@ def validate_reservation(reservation_id: int) -> ReservedTimeRange:
     with SessionLock() as session:
         reservation = session.get(Reservation, reservation_id)
         if reservation is None:
-            raise HTTPException(status_code=404, detail="Reservation not found")
+            raise HTTPException(status_code=404, detail="error.reservation.not_found")
         reservation.validated = True
         session.add(reservation)
         session.commit()
@@ -178,7 +174,7 @@ def get_reservations(user_id: int) -> list[ReservedTimeRange]:
     with SessionLock() as session:
         user = session.get(User, user_id)
         if user is None:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(status_code=404, detail="error.user.not_found")
         reservations = user.reservations
         return [
             ReservedTimeRange(
