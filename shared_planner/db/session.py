@@ -3,7 +3,6 @@ import json
 from sqlmodel import Session as _Session, SQLModel, create_engine
 from sqlalchemy import Engine
 from shared_planner.db.models import User, Shop, OpeningTime, Reservation, Token
-from threading import Lock
 
 
 class Singleton(type):
@@ -20,17 +19,12 @@ class SessionLock(metaclass=Singleton):
     engine: Engine
 
     def __init__(self):
-        self.db_mutex = Lock()
-        self.db_mutex.acquire()
         self.engine = create_engine("sqlite:///database.db")
-        self.db_mutex.release()
 
     def __enter__(self) -> _Session:
-        self.db_mutex.acquire()
         return _Session(self.engine).__enter__()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.db_mutex.release()
         return _Session(self.engine).__exit__(exc_type, exc_val, exc_tb)
 
     def create_db_and_tables(self):

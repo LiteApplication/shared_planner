@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { ref } from 'vue';
 import { defineComponent } from 'vue'
@@ -32,7 +32,7 @@ const onSubmit = async () => {
         error_msg.value = $t('error.fields');
         return;
     }
-    authApi.register(email.value, password.value, full_name.value).then(
+    authApi.register(email.value, password.value, full_name.value, group.value).then(
         () => {
             console.log('Logged in');
             router.push('/');
@@ -97,7 +97,7 @@ const onSubmit = async () => {
     </div>
 </template>
 
-<script>
+<script lang="ts">
 
 
 

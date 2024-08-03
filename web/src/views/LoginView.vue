@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { ref } from 'vue';
 import { defineComponent } from 'vue'
@@ -82,7 +82,7 @@ const onSubmit = async () => {
     </div>
 </template>
 
-<script>
+<script lang="ts">
 
 
 

@@ -127,7 +127,11 @@ def update_shop(shop_id: int, shop_data: ShopWithoutTimeRanges) -> Shop:
                 raise HTTPException(status_code=400, detail="error.shop.id_mismatch")
         else:
             shop_data.id = shop_id
-        session.add(shop_data)
+
+        # Update shop attributes
+        for key, value in shop_data.model_dump().items():
+            setattr(shop, key, value)
+            session.add(shop)
         session.commit()
         session.refresh(shop)
     return shop

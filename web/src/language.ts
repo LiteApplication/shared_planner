@@ -11,6 +11,16 @@ const messages = {
             logout: 'Logout',
             to_register: "Don't have an account? Register",
             to_login: 'Already have an account?',
+            shop_open: 'Open',
+        },
+        day: {
+            0: 'Sunday',
+            1: 'Monday',
+            2: 'Tuesday',
+            3: 'Wednesday',
+            4: 'Thursday',
+            5: 'Friday',
+            6: 'Saturday',
         },
         error: {
             unknown: 'Something went wrong, please try again later',
@@ -63,6 +73,16 @@ const messages = {
             logout: 'Déconnexion',
             to_register: 'Vous n\'avez pas de compte? Inscrivez-vous',
             to_login: 'Vous avez déjà un compte?',
+            shop_open: 'Ouvert',
+        },
+        day: {
+            0: 'Lundi',
+            1: 'Mardi',
+            2: 'Mercredi',
+            3: 'Jeudi',
+            4: 'Vendredi',
+            5: 'Samedi',
+            6: 'Dimanche',
         },
         error: {
             unknown: 'Une erreur est survenue, veuillez réessayer plus tard',

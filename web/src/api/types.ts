@@ -27,19 +27,11 @@ interface Shop {
     available_until: Date
 }
 
-/*
-{
-      "id": 0,
-      "day": 0,
-      "start_time": "09:33:16.570Z",
-      "end_time": "09:33:16.570Z"
-    }
-      */
 interface OpenRange {
     id: number,
     day: number,
-    start_time: Date,
-    end_time: Date
+    start_time: string,
+    end_time: string
 }
 
 interface ShopWithOpenRange extends Shop {

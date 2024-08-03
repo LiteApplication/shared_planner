@@ -10,7 +10,8 @@
 
         </div>
         <div class="timeline-container" :style="cssVars">
-            <div v-for="(task, index) in sortedTasksWithRows" class="task rounded" :key="index" :style="taskStyle(task)">
+            <div v-for="(task, index) in sortedTasksWithRows" class="task rounded" :class="{ disabled: task.title == null }" :key="index"
+                :style="taskStyle(task)" v-tooltip="(task.title == null) ? task.description : null">
                 <div class="task-content">
                     <slot name="task" :task="task" v-if="task.title">
                         <h3>{{ task.title }}</h3>
@@ -22,8 +23,10 @@
     </div>
 </template>
 
-<script>
-import { defineComponent } from 'vue';
+<script lang="ts">
+import { defineComponent, type PropType } from 'vue';
+import { timeToMinutes, minutesToTime } from '../utils';
+import { type Task } from '../types';
 
 export default defineComponent({
     name: 'DayTimeline',
@@ -34,36 +37,35 @@ export default defineComponent({
             required: true
         },
         startOfDay: {
-            type: String,
+            type: Number,
             required: true
         },
         endOfDay: {
-            type: String,
+            type: Number,
             required: true
         },
         tasks: {
-            type: Array,
+            type: Object as PropType<Task[]>,
             required: true,
-            validator: (tasks) =>
+            validator: (tasks: Task[]) =>
                 tasks.every(
                     (task) =>
                         'start_time' in task &&
                         'end_time' in task &&
                         'color' in task &&
-                        'tooltip' in task
+                        'title' in task &&
+                        'description' in task
                 )
         },
     },
     computed: {
         timeIntervals() {
             const intervals = [];
-            const startMinutes = this.timeToMinutes(this.startOfDay);
-            const endMinutes = this.timeToMinutes(this.endOfDay);
-            for (let i = startMinutes; i <= endMinutes; i += 30) {
+            for (let i = this.startOfDay; i <= this.endOfDay; i += 30) {
                 intervals.push({
-                    time: this.minutesToTime(i),
+                    time: minutesToTime(i),
                     showLabel: i % 60 === 0,
-                    label: this.formatTime(this.minutesToTime(i))
+                    label: this.formatTime(minutesToTime(i))
                 });
             }
             return intervals;
@@ -74,9 +76,9 @@ export default defineComponent({
             };
         },
         sortedTasksWithRows() {
-            const sorted = [...this.tasks].sort((a, b) => this.timeToMinutes(a.start_time) - this.timeToMinutes(b.start_time));
+            const sorted: Task[] = [...this.tasks].sort((a, b) => a.start_time - b.start_time);
             // Initialize an array to keep track of the end times of the rows
-            let rows = [];
+            let rows: number[] = [];
 
             // Iterate through the sorted tasks
             sorted.forEach((task) => {
@@ -85,7 +87,7 @@ export default defineComponent({
                 // Try to assign the task to an existing row
                 for (let i = 0; i < sorted.length; i++) {
                     if (task.start_time >= rows[i]) {
-                        task.row = i;
+                        task._row = i;
                         rows[i] = task.end_time;
                         assigned = true;
                         break;
@@ -94,7 +96,7 @@ export default defineComponent({
 
                 // If no existing row is available, create a new row
                 if (!assigned) {
-                    task.row = rows.length;
+                    task._row = rows.length;
                     rows.push(task.end_time);
                 }
             });
@@ -103,42 +105,28 @@ export default defineComponent({
 
     },
     methods: {
-        formatTime(time) {
+        formatTime(time: string) {
             const [hour, minute] = time.split(':');
             return `${hour}:${minute}`;
         },
-        taskStyle(task) {
+        taskStyle(task: Task) {
             const totalMinutes =
-                this.timeToMinutes(this.endOfDay) - this.timeToMinutes(this.startOfDay) + 30;
+                this.endOfDay - this.startOfDay + 30;
             const taskStart =
-                this.timeToMinutes(task.start_time) - this.timeToMinutes(this.startOfDay) + 30;
+                task.start_time - this.startOfDay + 30;
             const taskEnd =
-                this.timeToMinutes(task.end_time) - this.timeToMinutes(this.startOfDay) + 30;
+                task.end_time - this.startOfDay + 30;
             const topPercent = (taskStart / totalMinutes) * 100;
             const heightPercent = ((taskEnd - taskStart) / totalMinutes) * 100;
 
-            const marginLeft = task.row;
+            const marginLeft = task._row;
 
             return {
                 top: `${topPercent}%`,
                 height: `${heightPercent}%`,
                 backgroundColor: task.color,
-                boxSizing: 'border-box',
                 marginLeft: `${marginLeft}rem`
-
-
             };
-        },
-        timeToMinutes(time) {
-            const [hour, minute] = time.split(':').map(Number);
-            return hour * 60 + minute;
-        },
-        minutesToTime(minutes) {
-            const hour = Math.floor(minutes / 60)
-                .toString()
-                .padStart(2, '0');
-            const minute = (minutes % 60).toString().padStart(2, '0');
-            return `${hour}:${minute}`;
         }
     }
 });
@@ -187,7 +175,7 @@ export default defineComponent({
 .time-line {
     position: relative;
     display: flex;
-    align-items: center;
+    align-items: end;
     height: 100%;
 }
 
@@ -205,9 +193,15 @@ export default defineComponent({
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     z-index: 2;
     transition: width 0.3s;
+    box-sizing: border-box;
 }
 
 .task .task-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+
     opacity: 0;
     transition: opacity 0.3 ease, width 0, height 0;
     width: 0;
@@ -233,5 +227,9 @@ export default defineComponent({
 .task:hover {
     z-index: 3;
     width: 60%;
+}
+
+.task.disabled:hover {
+    width: 1rem;
 }
 </style>
