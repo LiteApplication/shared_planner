@@ -28,7 +28,7 @@ const onSubmit = async () => {
     authApi.login(email.value, password.value).then(
         () => {
             console.log('Logged in');
-            router.push('/');
+            router.go(-1);
         }
     ).catch(
         error => {
@@ -74,7 +74,7 @@ const onSubmit = async () => {
                 <p class="error" v-if="error_msg != '' && password == ''"> {{ error_msg }}</p>
                 <div class="flex gap-4 mt-1">
                     <Button v-bind:label="$t('message.to_register')" severity="secondary" outlined class="w-2/3"
-                        v-on:click="$router.push('/register')" />
+                        v-on:click="$router.replace('/register')" />
                     <Button v-bind:label="$t('message.login')" class="w-1/3" v-on:click="onSubmit" />
                 </div>
             </template>

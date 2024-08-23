@@ -1,11 +1,12 @@
-from shared_planner.db.session import SessionLock
+from shared_planner.db.session import SessionLock, load_dummies
 from shared_planner.db.models import Reservation, User, Shop
+
 
 import datetime
 
 
 def main():
-    SessionLock().load_dummies()
+    load_dummies()
 
     with SessionLock() as session:
         shop_1 = session.get(Shop, 1)

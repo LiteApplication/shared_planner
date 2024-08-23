@@ -25,7 +25,8 @@
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "shims-vue.d.ts"
+    "shims-vue.d.ts",
+    "src1:components/primevue/*/package.json"
   ],
   "extends": "@vue/tsconfig/tsconfig.json"
 }

@@ -2,6 +2,7 @@
 import { RouterView } from 'vue-router'
 
 import { defineComponent } from 'vue'
+import Toast from 'primevue/toast';
 
 </script>
 
@@ -9,12 +10,14 @@ import { defineComponent } from 'vue'
 export default defineComponent({
   name: 'App',
   components: {
-    RouterView
+    RouterView,
+    Toast
   }
 })
 </script>
 
 <template>
+  <Toast />
   <RouterView />
 </template>
 

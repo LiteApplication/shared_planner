@@ -29,10 +29,11 @@ class Shop(SQLModel, table=True):
     id: int = Field(primary_key=True, default=None)  # ID of the shop
     name: str  # Name of the shop (displayed)
     location: str  # Location of the shop (displayed)
-    latitude: float  # Latitude of the shop (on a map ?)
-    longitude: float  # Longitude of the shop (on a map ?)
+    maps_link: str  # Google Maps link of the shop
     description: str  # Description of the shop (displayed)
     volunteers: int  # Number of volunteers max in the shop
+    min_time: int  # Minimum time for a reservation (in minutes)
+    max_time: int  # Maximum time for a reservation (in minutes)
     available_from: datetime.datetime  # Date from which the shop is available
     available_until: datetime.datetime  # Date until which the shop is available
     open_ranges: list["OpeningTime"] = Relationship(back_populates="shop")

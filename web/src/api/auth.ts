@@ -24,14 +24,17 @@ export default class AuthApi {
   }
 
   async me(): Promise<User> {
-    return api.get("/auth/me");
+    return api.get("/auth/me").then(response => response.data);
   }
 
   async logout(): Promise<void> {
     try {
-      await api.post("/auth/logout");
       forgetToken();
-    } catch (e) {
+      await api.post("/auth/logout");
+    } catch (e: any) {
+      if (e.response?.status === 401) {
+        return;
+      }
       console.log(e)
     }
   }

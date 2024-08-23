@@ -1,7 +1,7 @@
 <template>
     <div class="timeline rounded-lg border">
-        <div class="timeline-header rounded-lg bg-slate-900">
-            <p>{{ title }}</p>
+        <div class="timeline-header rounded-lg bg-slate-100 dark:bg-slate-800">
+            <p>{{ title }}</p><Button @click="$emit('addTask')" severity="info">+</Button>
         </div>
         <div class=" timeline-body divide-y divide-slate-500" :style="cssVars">
             <div v-for="(time, index) in timeIntervals" :key="index" class="time-line">
@@ -11,26 +11,29 @@
         </div>
         <div class="timeline-container" :style="cssVars">
             <div v-for="(task, index) in sortedTasksWithRows" class="task rounded" :class="{ disabled: task.title == null }" :key="index"
-                :style="taskStyle(task)" v-tooltip="(task.title == null) ? task.description : null">
-                <div class="task-content">
-                    <slot name="task" :task="task" v-if="task.title">
-                        <h3>{{ task.title }}</h3>
-                        <p>{{ task.description }}</p>
-                    </slot>
-                </div>
+                :style="taskStyle(task)" v-tooltip="{
+                    value: `<h3 style='font-weight: bold'>${task.title}</h3><p>${task.description}</p>`,
+                    escape: false, hideDelay: 0
+                }" @click="$emit('clickTask', task)">
             </div>
         </div>
     </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import { defineComponent, type PropType } from 'vue';
-import { timeToMinutes, minutesToTime } from '../utils';
+import { minutesToTime } from '../utils';
 import { type Task } from '../types';
+import Button from 'primevue/button';
+</script>
 
+<script lang="ts">
 export default defineComponent({
     name: 'DayTimeline',
-    components: {},
+    components: {
+        // eslint-disable-next-line vue/no-reserved-component-names
+        Button
+    },
     props: {
         title: {
             type: String,
@@ -54,7 +57,8 @@ export default defineComponent({
                         'end_time' in task &&
                         'color' in task &&
                         'title' in task &&
-                        'description' in task
+                        'description' in task &&
+                        'cursor' in task
                 )
         },
     },
@@ -125,7 +129,8 @@ export default defineComponent({
                 top: `${topPercent}%`,
                 height: `${heightPercent}%`,
                 backgroundColor: task.color,
-                marginLeft: `${marginLeft}rem`
+                marginLeft: `${marginLeft}rem`,
+                cursor: task.cursor
             };
         }
     }
@@ -135,23 +140,26 @@ export default defineComponent({
 <style scoped>
 .timeline {
     width: 10rem;
+    min-width: 8em;
     position: relative;
     margin: 1rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: box-shadow 0.3s, width 0.3s;
 }
 
-.timeline:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    width: 30rem;
-    z-index: 2;
-
-}
-
 .timeline-header {
     padding: 10px;
     text-align: center;
     font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+}
+
+.timeline-header Button {
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    margin: 0;
 }
 
 .timeline-body {
@@ -194,42 +202,5 @@ export default defineComponent({
     z-index: 2;
     transition: width 0.3s;
     box-sizing: border-box;
-}
-
-.task .task-content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-
-    opacity: 0;
-    transition: opacity 0.3 ease, width 0, height 0;
-    width: 0;
-    height: 0;
-    color: white;
-    padding: 0.5rem;
-    z-index: -1;
-    border-radius: 0.5rem;
-}
-
-
-.task .task-content h3 {
-    font-weight: bold;
-}
-
-.task:hover .task-content {
-    opacity: 1;
-    z-index: 3;
-    width: max-content;
-    height: fit-content;
-}
-
-.task:hover {
-    z-index: 3;
-    width: 60%;
-}
-
-.task.disabled:hover {
-    width: 1rem;
 }
 </style>

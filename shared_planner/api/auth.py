@@ -21,11 +21,16 @@ class UserResult(BaseModel):
     email: str
     full_name: str
     admin: bool
+    group: str = ""
 
     @classmethod
     def from_user(cls, user: User) -> "UserResult":
         return cls(
-            email=user.email, full_name=user.full_name, admin=user.admin, id=user.id
+            email=user.email,
+            full_name=user.full_name,
+            admin=user.admin,
+            id=user.id,
+            group=user.group,
         )
 
 

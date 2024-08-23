@@ -19,17 +19,55 @@ class ShopWithoutTimeRanges(BaseModel):
     name: str
     description: str
     location: str
-    latitude: float
-    longitude: float
+    maps_link: str
     volunteers: int
+    min_time: int
+    max_time: int
     available_from: datetime.datetime
     available_until: datetime.datetime
+
+    @classmethod
+    def from_shop(cls, shop: Shop):
+        return cls(
+            **shop.model_dump(
+                include=[
+                    "id",
+                    "name",
+                    "description",
+                    "location",
+                    "maps_link",
+                    "volunteers",
+                    "min_time",
+                    "max_time",
+                    "available_from",
+                    "available_until",
+                ]
+            ),
+        )
 
 
 class ShopWithTimeRanges(ShopWithoutTimeRanges):
     """Data model for shop with time ranges."""
 
-    open_ranges: list["TimeRange"]
+    open_ranges: list["TimeRange"] = []
+
+    @classmethod
+    def from_shop(cls, shop: Shop):
+        result = super().from_shop(shop)
+        result.open_ranges = [
+            TimeRange(
+                **time_range.model_dump(
+                    include=[
+                        "id",
+                        "day",
+                        "start_time",
+                        "end_time",
+                    ]
+                )
+            )
+            for time_range in shop.open_ranges
+        ]
+        return result
 
 
 class TimeRange(BaseModel):
@@ -41,7 +79,7 @@ class TimeRange(BaseModel):
     end_time: datetime.time
 
 
-@router.get("/get/{shop_id}", dependencies=[Depends(CurrentToken)])
+@router.get("/{shop_id}/get", dependencies=[Depends(CurrentToken)])
 def get_shop(shop_id: int) -> ShopWithTimeRanges:
     """Get a specific shop"""
     with SessionLock() as session:
@@ -49,37 +87,8 @@ def get_shop(shop_id: int) -> ShopWithTimeRanges:
         if shop is None:
             raise HTTPException(status_code=404, detail="error.shop.not_found")
 
-        result = ShopWithTimeRanges(
-            open_ranges=[],
-            **shop.model_dump(
-                include=[
-                    "id",
-                    "name",
-                    "description",
-                    "location",
-                    "latitude",
-                    "longitude",
-                    "volunteers",
-                    "available_from",
-                    "available_until",
-                ]
-            ),
-        )
-
-        for time_range in shop.open_ranges:
-            result.open_ranges.append(
-                TimeRange(
-                    **time_range.model_dump(
-                        include=[
-                            "id",
-                            "day",
-                            "start_time",
-                            "end_time",
-                        ]
-                    )
-                )
-            )
-
+        result = ShopWithTimeRanges.from_shop(shop)
+        print(result)
     return result
 
 
@@ -103,7 +112,7 @@ def create_shop(shop_data: ShopWithoutTimeRanges) -> Shop:
     return new_shop
 
 
-@router.delete("/delete/{shop_id}", dependencies=[Depends(CurrentAdmin)])
+@router.delete("/{shop_id}/delete", dependencies=[Depends(CurrentAdmin)])
 def delete_shop(shop_id: int) -> None:
     """Delete a specific shop"""
     with SessionLock() as session:
@@ -115,7 +124,7 @@ def delete_shop(shop_id: int) -> None:
     return None
 
 
-@router.put("/update/{shop_id}", dependencies=[Depends(CurrentAdmin)])
+@router.put("/{shop_id}/update", dependencies=[Depends(CurrentAdmin)])
 def update_shop(shop_id: int, shop_data: ShopWithoutTimeRanges) -> Shop:
     """Update a specific shop"""
     with SessionLock() as session:
@@ -137,7 +146,7 @@ def update_shop(shop_id: int, shop_data: ShopWithoutTimeRanges) -> Shop:
     return shop
 
 
-@timerange_router.post("/create/{shop_id}", dependencies=[Depends(CurrentAdmin)])
+@timerange_router.post("/{shop_id}/create", dependencies=[Depends(CurrentAdmin)])
 def create_time_range(shop_id: int, time_range: TimeRange) -> OpeningTime:
     """Create a new time range for a shop"""
     with SessionLock() as session:
@@ -173,7 +182,7 @@ def create_time_range(shop_id: int, time_range: TimeRange) -> OpeningTime:
 
 
 @timerange_router.delete(
-    "/delete/{time_range_id}", dependencies=[Depends(CurrentAdmin)]
+    "/{time_range_id}/delete", dependencies=[Depends(CurrentAdmin)]
 )
 def delete_time_range(time_range_id: int) -> None:
     """Delete a specific time range"""
@@ -188,7 +197,7 @@ def delete_time_range(time_range_id: int) -> None:
     return None
 
 
-@timerange_router.put("/update/{time_range_id}", dependencies=[Depends(CurrentAdmin)])
+@timerange_router.put("/{time_range_id}/update", dependencies=[Depends(CurrentAdmin)])
 def update_time_range(time_range_id: int, new_tr: TimeRange) -> OpeningTime:
     """Update a specific time range"""
     with SessionLock() as session:

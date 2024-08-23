@@ -20,7 +20,7 @@ const email = ref('');
 const full_name = ref('');
 const password = ref('');
 const error_msg = ref('');
-const group = ref('');
+const group = ref({ name: '', code: '' });
 const router = useRouter();
 
 const groups = [
@@ -28,14 +28,14 @@ const groups = [
 ];
 
 const onSubmit = async () => {
-    if (email.value === '' || password.value === '' || full_name.value === '' || group.value === '') {
+    if (email.value === '' || password.value === '' || full_name.value === '' || group.value.code === '') {
         error_msg.value = $t('error.fields');
         return;
     }
-    authApi.register(email.value, password.value, full_name.value, group.value).then(
+    authApi.register(email.value, password.value, full_name.value, group.value?.code).then(
         () => {
             console.log('Logged in');
-            router.push('/');
+            router.go(-1);
         }
     ).catch(
         error => {
@@ -89,7 +89,8 @@ const onSubmit = async () => {
             <template #footer>
                 <p class="error" v-if="error_msg != '' && password == ''"> {{ error_msg }}</p>
                 <div class="flex gap-4 mt-1">
-                    <Button v-bind:label="$t('message.to_login')" severity="secondary" outlined class="w-2/3" v-on:click="$router.push('/login')" />
+                    <Button v-bind:label="$t('message.to_login')" severity="secondary" outlined class="w-2/3"
+                        v-on:click="$router.replace('/login')" />
                     <Button v-bind:label="$t('message.register')" class="w-1/3" v-on:click="onSubmit" />
                 </div>
             </template>
