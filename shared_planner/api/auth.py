@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from sqlmodel import select
 
-from shared_planner.db.models import Token, User
+from shared_planner.db.models import Notification, Token, User
 from shared_planner.db.session import SessionLock
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -87,6 +87,7 @@ def login(
             raise HTTPException(status_code=401, detail="error.auth.invalid_password")
 
         token = Token.create_token(user)
+        session.add(Notification.create(user, "notification.login"))
         session.add(token)
         session.commit()
         session.refresh(token)

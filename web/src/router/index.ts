@@ -20,6 +20,11 @@ const router = createRouter({
       component: () => import('../views/RegisterView.vue')
     },
     {
+      path: '/notifications',
+      name: 'notifications',
+      component: () => import('../views/NotificationsView.vue')
+    },
+    {
       path: '/reservations',
       name: 'reservations',
       component: () => import('../views/ReservationsView.vue')
@@ -33,6 +38,26 @@ const router = createRouter({
       path: '/shops/:id',
       name: 'shop',
       component: () => import('../views/ShopView.vue')
+    },
+    {
+      path: "/admin/users",
+      name: "admin-users",
+      component: () => import('../views/admin/AdminUsersView.vue')
+    },
+    {
+      path: "/admin/shops",
+      name: "admin-shops",
+      component: () => import('../views/admin/AdminShopsView.vue')
+    },
+    {
+      path: "/admin/reservations",
+      name: "admin-reservations",
+      component: () => import('../views/admin/AdminShopsView.vue')
+    },
+    {
+      path: "/admin/settings",
+      name: "admin-settings",
+      component: () => import('../views/admin/AdminSettingsView.vue')
     }
   ]
 })

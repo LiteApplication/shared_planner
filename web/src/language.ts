@@ -1,4 +1,3 @@
-
 const messages = {
     en: {
         message: {
@@ -10,32 +9,90 @@ const messages = {
             full_name: 'Full Name',
             group: 'Group',
             logout: 'Logout',
-            to_register: "Don't have an account? Register",
+            to_register: 'Don\'t have an account? Register',
             to_login: 'Already have an account?',
-            shop_open: 'Open',
             save: 'Save',
             cancel: 'Cancel',
             menu: 'Menu',
             select_date: 'Select week',
+            success: 'Success',
+            empty_list: 'Nothing to show here ... yet',
 
             date: 'Date',
             time: 'Time',
 
             reservation: {
+                new_reservation_explanation: 'Click the button below to show the available shops, then click the \'Book\' button to create a reservation in the shop of your choice.',
+                new_reservation_button: 'Click here to see the shops and book a time',
                 booked: 'Booked',
                 booked_by_you: 'Booked by you',
                 edit_title: 'Edit reservation',
-                edit_description: 'Please select a new time range for your reservation and click "Save"',
+                edit_description: 'Please select a new time range for your reservation and click \'Save\'',
                 add_title: 'Add reservation',
-                add_description: 'Please select a time range for your reservation and click "Save"',
+                add_description: 'Please select a time range for your reservation and click \'Save\'',
                 start_time: 'Start time',
                 end_time: 'End time',
                 delete: 'Delete',
-                confirm_delete: 'Are you sure you want to delete this reservation?\nThe admins will be notified to try and find a replacement.\nIf you do not want to delete it, click "Cancel"',
+                confirm_delete: 'Are you sure you want to delete this reservation?\nThe admins will be notified to try and find a replacement.\nIf you do not want to delete it, click \'Cancel\'',
             },
             shops: {
-                description: "Open from {from} to {until}. {volunteers} volunteers needed.\n{description}",
-                book: "Book",
+                description: 'Open from {from} to {until}. {volunteers} volunteers needed.\n{description}',
+                open: 'Open',
+                book: 'Book',
+                week_format: '\'Week \'WW\', \'yy',
+                select: 'Please select a shop',
+            },
+        },
+        admin: {
+            unauthorized: 'You are not authorized to view this page',
+            admin_column: 'Admin',
+            confirm_delete_selected_users: 'Are you sure you want to delete the selected users ? This action cannot be undone. Their reservations will be deleted as well.',
+            user_deleted: 'The user(s) have been deleted successfully.',
+            shop: {
+                informations: 'Shop informations',
+                create: 'Create shop',
+                delete: 'Delete shop',
+                name: 'Shop name',
+                description: 'Description',
+                location: 'Location',
+                volunteers: 'Volunteers',
+                maps: 'Google Maps link',
+                min_time: 'Minimum reservation time',
+                max_time: 'Maximum reservation time',
+                start_date: 'Start date',
+                end_date: 'End date',
+
+                created: 'The shop has been created successfully.',
+                updated: 'The shop has been updated successfully.',
+                deleted: 'The shop has been deleted successfully.',
+                delete_confirm: 'Are you sure you want to delete this shop? All reservations will be deleted as well.',
+
+                open_ranges: 'Open ranges',
+                or_add: 'Add an open range',
+                or_added: 'The open range has been added successfully.',
+                or_title: 'Open ranges',
+                or_day: 'Day',
+                or_start: 'Start time',
+                or_end: 'End time',
+                or_deleted: 'The open range has been deleted successfully.'
+            },
+            settings: {
+                saved_description: "{key} has been saved successfully.",
+                saved_title: "Setting saved",
+                key: "Setting",
+                value: "Value",
+
+                title: {
+                    email_confirm_reservation: "Send emails to confirm reservations",
+                    email_notification_before: "Time before email reminder",
+                    base_domain: "Server domain name",
+                },
+                description: {
+                    email_confirm_reservation: "When enabled, an email will be sent immediately after a reservation is made.",
+                    email_notification_before: "Send an email reminder to the user this many hours before their reservation.<br>Set this to -1 to disable email reminders.",
+                    base_domain: "The domain name of the server. This is used to generate links in emails<br>Be sure to include the protocol (http/https).<br>Do not include a trailing slash. Example: <i>https://reservations.magev.fr</i>.<br><b>Do not modify this setting unless you know what you are doing.</b>",
+                }
+
             }
         },
         day: {
@@ -57,6 +114,7 @@ const messages = {
             },
             admin: {
                 required: 'Admin role required',
+                setting_not_found: 'This setting cannot be found'
             },
             auth: {
                 user_not_found: 'User not found',
@@ -74,6 +132,7 @@ const messages = {
                 time_range_not_found: 'Time range not found',
                 id_mismatch: 'Shop id mismatch',
                 not_loaded: 'Something went wrong while loading the shop',
+                no_id: 'No shop id provided',
             },
             reservation: {
                 overlap: 'Too many reservations overlap',
@@ -96,18 +155,46 @@ const messages = {
                 not_found: 'User not found',
                 email_not_same: 'Cannot change email',
                 cant_set_self_admin: 'Cannot change own admin status',
+                already_exists: 'User already exists',
+            },
+            notification: {
+                not_found: 'Notification not found',
+                not_allowed: 'Not allowed to access this notification',
+
             }
         },
         menu: {
-            my_reservations: "My reservations",
-            create_reservation: "Book a time",
+            my_reservations: 'My reservations',
+            create_reservation: 'Book a time',
             admin: {
                 title: 'Admin',
                 shops: 'Shops',
                 users: 'Users',
-                reservations: 'Reservations'
+                reservations: 'Reservations',
+                settings: 'Server settings'
             }
 
+        },
+        notification: {
+            delete: 'Delete',
+            mark_as_read: 'Mark as read',
+            mark_as_unread: 'Mark as unread',
+            mark_all_as_read: 'Mark all as read',
+
+            login: {
+                title: "New login",
+                body: "You have logged in successfully",
+            },
+            loading: {
+                title: "Loading",
+                body: "Loading data ...",
+            },
+            test: {
+                title: "Test notification {test}",
+                body: "This is a test notification",
+                access: "Open test"
+
+            }
         },
         date_locale: 'en-GB',
     },
@@ -130,7 +217,7 @@ const messages = {
                 booked: 'Réservé',
                 booked_by_you: 'Réservé par vous',
                 edit_title: 'Modifier la réservation',
-                edit_description: 'Veuillez sélectionner une nouvelle plage horaire pour votre réservation et cliquer sur "Sauvegarder"',
+                edit_description: 'Veuillez sélectionner une nouvelle plage horaire pour votre réservation puis cliquer sur \'Sauvegarder\'',
                 start_time: 'Heure de début',
                 end_time: 'Heure de fin',
 

@@ -1,5 +1,6 @@
 from shared_planner.db.session import SessionLock, load_dummies
 from shared_planner.db.models import Reservation, User, Shop
+from shared_planner.db.settings import init_settings
 
 
 import datetime
@@ -38,3 +39,5 @@ def main():
         print("Reservations:", user_3.reservations)
         print("First shop:", user_3.reservations[0].shop)
         print("Shoppenhower :", user_3.reservations[0].shop.open_ranges)
+
+        init_settings()

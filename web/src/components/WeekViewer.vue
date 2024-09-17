@@ -9,6 +9,7 @@ import { type Task } from '../types';
 import { useToast } from 'primevue/usetoast';
 import EditReservationDialog from './dialog/EditReservationDialog.vue';
 import AddReservationDialog from './dialog/AddReservationDialog.vue';
+import handleError from '@/error_handler';
 
 
 const toast = useToast();
@@ -57,17 +58,25 @@ function colorTask(task: ReservedTimeRange) {
 
 function onLoadShop(shop: ShopWithOpenRange) {
     shopData.value = shop;
+    const snapTo30 = (time: string) => {
+        const minutes = timeToMinutes(time);
+        return minutes - (minutes % 30);
+    }
     dayBounds.value = shop.open_ranges.reduce(
         (acc: { start_time: number, end_time: number }, range: OpenRange) => {
-            if (timeToMinutes(range.start_time) < acc.start_time) acc.start_time = timeToMinutes(range.start_time);
-            if (timeToMinutes(range.end_time) > acc.end_time) acc.end_time = timeToMinutes(range.end_time) + 30;
+            if (snapTo30(range.start_time) < acc.start_time) acc.start_time = snapTo30(range.start_time);
+            if (snapTo30(range.end_time) > acc.end_time) acc.end_time = snapTo30(range.end_time) + 30;
             return acc;
         },
         { start_time: timeToMinutes('12:00'), end_time: timeToMinutes('13:00') }
     );
 
 
+    const weekStart = getDateOfWeekDay(props.year, props.weekNumber, 0).getTime();
+    const shopStart = (new Date(shop.available_from)).getTime();
+    const shopEnd = (new Date(shop.available_until)).getTime();
 
+    const days = (n: number) => 1000 * 60 * 60 * 24 * n;
     reservationApi.getPlanning(shop.id, props.year, props.weekNumber).then(
         planning => {
 
@@ -75,17 +84,18 @@ function onLoadShop(shop: ShopWithOpenRange) {
                 (day_planning, index) => {
 
                     const result: Task[] = shop.open_ranges.filter(
-                        (range: OpenRange) => index === range.day
+                        (range: OpenRange) => (index === range.day) && (weekStart + days(index) >= shopStart) && (weekStart + days(index) <= shopEnd)
                     ).map(
                         (range: OpenRange) => ({
                             start_time: timeToMinutes(range.start_time),
                             end_time: timeToMinutes(range.end_time),
                             color: 'gray',
-                            title: $t('message.shop_open'),
+                            title: $t('message.shops.open'),
                             description: `${reformatTime(range.start_time)} - ${reformatTime(range.end_time)}`,
                             id: null,
                             _row: undefined,
                             cursor: 'arrow',
+                            status: -3
                         })
                     );
 
@@ -99,6 +109,7 @@ function onLoadShop(shop: ShopWithOpenRange) {
                             id: range.id,
                             _row: undefined,
                             cursor: (range.status != -1) ? 'pointer' : 'arrow',
+                            status: range.status
                         })
                     ));
 
@@ -108,13 +119,7 @@ function onLoadShop(shop: ShopWithOpenRange) {
             isLoading.value = false;
         }
     ).catch(
-        (error) => {
-            if (error.response?.data) {
-                toast.add({ severity: 'error', summary: $t('error.title'), detail: $t(error.response?.data.detail, { min_time: shopData.value?.min_time, max_time: shopData.value?.max_time }) });
-            } else {
-                toast.add({ severity: 'error', summary: $t('error.title'), detail: $t('error.reservation.unknown') });
-            }
-        }
+        handleError(toast, $t, "error.shop.not_loaded")
     );
 }
 
@@ -175,6 +180,10 @@ function onAddTask(day: number) {
 
 
     const volunteers = shopData.value?.volunteers;
+    const min_time = shopData.value?.min_time || 60;
+
+    dialogTimeStart.value = new Date(task_date_ms + 10 * 60 * 60 * 1000); // 10:00
+    dialogTimeEnd.value = new Date(dialogTimeStart.value.getTime() + min_time * 60 * 1000);
 
     if (!open_ranges?.length) {
         console.error("No open range found");
@@ -186,16 +195,16 @@ function onAddTask(day: number) {
         return;
     }
     dialogTimeStart.value = new Date(task_date_ms + timeToMinutes(open_ranges[0].start_time) * 60 * 1000);
-    dialogTimeEnd.value = new Date(dialogTimeStart.value.getTime() + shopData.value?.min_time! * 60 * 1000);
+    dialogTimeEnd.value = new Date(dialogTimeStart.value.getTime() + min_time * 60 * 1000);
 
     for (const open_range of open_ranges)
-        for (let start_time = timeToMinutes(open_range.start_time); start_time < timeToMinutes(open_range.end_time); start_time += shopData.value?.min_time!) {
-            const end_time = start_time + shopData.value?.min_time!;
+        for (let start_time = timeToMinutes(open_range.start_time); start_time < timeToMinutes(open_range.end_time); start_time += min_time) {
+            const end_time = start_time + min_time * 2;
             const reservations = displayedTasks.value[day].filter(
-                (task: Task) => task.start_time < end_time && task.end_time > start_time
-            ).length;
+                (task: Task) => task.start_time < end_time && task.end_time > start_time && task.status !== -3
+            );
 
-            if (reservations < volunteers) {
+            if (reservations.length < volunteers && !reservations.some((task: Task) => { return task.status === -2 })) {
                 dialogTimeStart.value = new Date(task_date_ms + start_time * 60 * 1000);
                 dialogTimeEnd.value = new Date(task_date_ms + end_time * 60 * 1000);
                 return;
@@ -214,6 +223,22 @@ function onAddTask(day: number) {
 </script>
 <template>
     <div v-if="shopData">
+        <div id="legende" class="rounded p-4 m-2 mb-0 bg-slate-100 dark:bg-slate-800">
+            <div class="flex">
+                <div id="open" class="rounded square-legend"></div>
+                <p>{{ $t("message.shops.open") }}</p>
+            </div>
+            <div class="flex">
+                <div id="booked" class="rounded square-legend"></div>
+                <p>{{ $t("message.reservation.booked") }}</p>
+            </div>
+            <div class="flex">
+                <div id="booked-by-you" class="rounded square-legend"></div>
+                <p>{{ $t("message.reservation.booked_by_you") }}</p>
+            </div>
+
+
+        </div>
         <div class="weekview">
             <DayTimeline v-for="[index, tasks] in displayedTasks.entries()" :key="index" :title="$t(`day.${index}`)" :tasks="tasks"
                 :startOfDay="dayBounds.start_time" :endOfDay="dayBounds.end_time" @click-task="(task: Task) => onTaskClick(index, task)"
@@ -244,5 +269,25 @@ export default defineComponent({
     gap: 0 rem;
     width: 100%;
     justify-content: space-around;
+}
+
+.square-legend {
+    width: 20px;
+    height: 20px;
+    border: 1px solid black;
+    display: inline-block;
+    margin-right: 5px;
+}
+
+#open {
+    background-color: gray;
+}
+
+#booked {
+    background-color: #ff9142;
+}
+
+#booked-by-you {
+    background-color: #42ff4c;
 }
 </style>

@@ -16,6 +16,14 @@ type User = {
 }
 
 
+const exampleUser: User = {
+    id: -1,
+    email: "Loading ...",
+    full_name: "Loading ...",
+    admin: false,
+    group: "Loading ..."
+}
+
 type Shop = {
     id: number,
     name: string,
@@ -51,15 +59,15 @@ type ReservedTimeRange = {
 }
 const exampleShop: Shop = {
     id: -1,
-    name: "Loading ...",
-    description: "Loading, please wait ...",
-    location: "Loading ...",
-    maps_link: "Loading ...",
+    name: "",
+    description: "",
+    location: "",
+    maps_link: "https://maps.app.goo.gl/...",
     volunteers: 0,
     min_time: 0,
     max_time: 0,
-    available_from: "0000-00-00 00:00",
-    available_until: "0000-00-00 00:00"
+    available_from: "0000-00-00",
+    available_until: "0000-00-00"
 }
 
 const exampleReservedTimeRange: ReservedTimeRange = {
@@ -88,7 +96,43 @@ type BookRangeRequest = {
     start_time: string,
     duration_minutes: number
 }
+type Setting = {
+    key: string,
+    value: string,
+    private: boolean
+}
+
+type Notification = {
+    id: number,
+    user_id: number | null,
+    message: string
+    date: string
+    data: string | null,
+    icon: string | null,
+    is_reminder: boolean,
+    read: boolean,
+    route: string | null,
+
+    mail: boolean,
+    mail_sent: boolean,
+}
+
+const exampleNotification: Notification = {
+    id: -1,
+    user_id: null,
+    message: "notification.loading",
+    date: "0000-00-00 00:00",
+    data: null,
+    is_reminder: false,
+    read: true,
+    icon: "pi pi-info-circle",
+    route: "/notifications",
+
+    mail: false,
+    mail_sent: false,
+}
 
 
-export type { TokenResponse, User, Shop, OpenRange, ShopWithOpenRange, ReservedTimeRange, BookRangeRequest }
-export { exampleShop, exampleReservedTimeRange, exampleOpenRange, exampleShopWithOpenRange }
+
+export type { TokenResponse, User, Shop, OpenRange, ShopWithOpenRange, ReservedTimeRange, BookRangeRequest, Setting, Notification }
+export { exampleShop, exampleReservedTimeRange, exampleOpenRange, exampleShopWithOpenRange, exampleUser, exampleNotification }

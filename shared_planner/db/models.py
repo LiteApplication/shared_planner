@@ -1,6 +1,11 @@
 import datetime
-from sqlmodel import Field, SQLModel, Relationship
+import json
+from typing import TYPE_CHECKING
+from sqlmodel import Field, SQLModel, Relationship, func, not_, or_, select
 import bcrypt
+
+if TYPE_CHECKING:
+    from shared_planner.db.session import SessionLock
 
 
 class User(SQLModel, table=True):
@@ -12,8 +17,13 @@ class User(SQLModel, table=True):
     hashed_password: bytes  # Password hashed
     admin: bool = False  # Is the user an admin
     group: str  # Group of the user
-    reservations: list["Reservation"] = Relationship(back_populates="user")
-    tokens: list["Token"] = Relationship(back_populates="user")
+    reservations: list["Reservation"] = Relationship(
+        back_populates="user", cascade_delete=True
+    )
+    tokens: list["Token"] = Relationship(back_populates="user", cascade_delete=True)
+    notifications: list["Notification"] = Relationship(
+        back_populates="user", cascade_delete=True
+    )
 
     def set_password(self, password: str):
         salt = bcrypt.gensalt()
@@ -36,8 +46,12 @@ class Shop(SQLModel, table=True):
     max_time: int  # Maximum time for a reservation (in minutes)
     available_from: datetime.datetime  # Date from which the shop is available
     available_until: datetime.datetime  # Date until which the shop is available
-    open_ranges: list["OpeningTime"] = Relationship(back_populates="shop")
-    reservations: list["Reservation"] = Relationship(back_populates="shop")
+    open_ranges: list["OpeningTime"] = Relationship(
+        back_populates="shop", cascade_delete=True
+    )
+    reservations: list["Reservation"] = Relationship(
+        back_populates="shop", cascade_delete=True
+    )
 
 
 class OpeningTime(SQLModel, table=True):
@@ -84,3 +98,96 @@ class Token(SQLModel, table=True):
             access_token=bcrypt.gensalt().decode("utf-8"),
             expires_at=datetime.datetime.now() + datetime.timedelta(days=1),
         )
+
+
+class Setting(SQLModel, table=True):
+    """Represents the settings in the database"""
+
+    key: str = Field(primary_key=True)
+    value: str
+    private: bool = True
+
+    def toInt(self):
+        return int(self.value)
+
+    def toBool(self):
+        return self.value == "True"
+
+
+class Notification(SQLModel, table=True):
+    """Represents a notification to a user in the database"""
+
+    id: int = Field(primary_key=True, default=None)
+    user_id: int | None = Field(foreign_key="user.id", nullable=True)
+    user: User | None = Relationship(back_populates="notifications")
+    message: str  # Holds the message description (notification.upcoming_reservation)
+    date: datetime.datetime  # Date at which the notification was created
+    data: str | None = None  # Holds the variable data for the message (JSON string)
+    is_reminder: bool = False  # Will get deleted after the user has seen it
+    read: bool = False  # Has the user seen the notification
+    route: str | None = None  # Route to send the user to when clicking on the action
+
+    mail: bool = False  # Should the notification be sent by mail
+    mail_sent: bool = False  # Has the mail been sent by the scheduler
+
+    def mark_read(self):
+        self.read = True
+        return
+
+    def mark_unread(self):
+        self.read = False
+        return
+
+    @staticmethod
+    def create(
+        user: User,
+        message: str,
+        data: dict | None = None,
+        route: str | None = None,
+        is_reminder: bool = False,
+        mail: bool = False,
+    ) -> "Notification":
+        return Notification(
+            user=user,
+            message=message,
+            data=json.dumps(data) if data else None,
+            route=route,
+            date=datetime.datetime.now(),
+            mail=mail,
+            is_reminder=is_reminder,
+        )
+
+    @staticmethod
+    def find_unread(user: User, session: "SessionLock") -> list["Notification"]:
+        return session.exec(
+            select(Notification).where(
+                not_(Notification.read),
+                or_(Notification.user_id == user.id, Notification.user_id is None),
+            )
+        ).all()
+
+    @staticmethod
+    def find_unsent(session: "SessionLock"):
+        return session.exec(
+            select(Notification).where(
+                Notification.mail,
+                not_(Notification.mail_sent),
+            )
+        ).all()
+
+    @staticmethod
+    def count_unread(user: User, session: "SessionLock") -> int:
+        if user.admin:
+            return session.exec(
+                select(func.count(Notification.id)).where(
+                    not_(Notification.read),
+                    or_(Notification.user_id == user.id, Notification.user_id is None),
+                )
+            ).first()
+
+        else:
+            return session.exec(
+                select(func.count(Notification.id)).where(
+                    Notification.user_id == user.id, not_(Notification.read)
+                )
+            ).first()

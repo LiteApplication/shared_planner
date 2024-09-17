@@ -14,8 +14,8 @@
   "dependencies": {
     "@babel/cli": "^7.0.0",
     "@primevue/themes": "^4.0.2",
+    "@vueuse/router": "^11.1.0",
     "axios": "^1.7.2",
-    "luxon": "^3.5.0",
     "primeicons": "^7.0.0",
     "primevue": "^4.0.2",
     "requests": "^0.3.0",

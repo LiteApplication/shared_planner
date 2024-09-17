@@ -17,6 +17,7 @@ class UserCreate(BaseModel):
     email: str
     full_name: str
     password: str
+    group: str
     admin: bool = False
 
 
@@ -27,6 +28,12 @@ def create_user(
 ) -> UserResult:
     """Create a new user"""
     with SessionLock() as session:
+        # Check if the user already exists
+        statement = select(User).where(User.email == user_data.email)
+        user = session.exec(statement).first()
+        if user is not None:
+            raise HTTPException(status_code=400, detail="error.user.already_exists")
+
         new_user = User(**user_data.model_dump())
         new_user.set_password(user_data.password)
         session.add(new_user)
@@ -71,16 +78,27 @@ def delete_user(user_id: int) -> UserResult:
     return UserResult.from_user(user)
 
 
-@router.put("/update/{user_id}", dependencies=[Depends(CurrentAdmin)])
-def update_user(user_id: int, user_data: UserCreate) -> UserResult:
+@router.put("/update")
+def update_user(
+    user_data: UserResult, exec_user: User = Depends(CurrentAdmin)
+) -> UserResult:
     """Update a specific user"""
     with SessionLock() as session:
-        statement = select(User).where(User.id == user_id)
+        statement = select(User).where(User.id == user_data.id)
         user = session.exec(statement).first()
         if user is None:
             raise HTTPException(status_code=404, detail="error.user.not_found")
         user.email = user_data.email
         user.full_name = user_data.full_name
+        if user_data.id == exec_user.id:
+            if user_data.admin != exec_user.admin:
+                raise HTTPException(
+                    status_code=400, detail="error.user.cant_set_self_admin"
+                )
+        user.admin = user_data.admin
+        user.full_name = user_data.full_name
+        user.email = user_data.email
+        user.group = user_data.group
 
         session.add(user)
         session.commit()
@@ -124,29 +142,7 @@ def read_users_me(user: Annotated[User, Depends(CurrentUser)]) -> UserResult:
     return UserResult.from_user(user)
 
 
-@router.put("/set_admin/{user_id}", dependencies=[Depends(CurrentAdmin)])
-def set_admin(
-    user_id: int, admin: bool, current_user: User = Depends(CurrentUser)
-) -> UserResult:
-    """Set a user as admin"""
-    with SessionLock() as session:
-        statement = select(User).where(User.id == user_id)
-        user = session.exec(statement).first()
-        if user is None:
-            raise HTTPException(status_code=404, detail="error.user.not_found")
-
-        if user.id == current_user.id:
-            raise HTTPException(
-                status_code=400, detail="error.user.cant_set_self_admin"
-            )
-
-        user.admin = admin
-        session.add(user)
-        session.commit()
-        session.refresh(user)
-    return UserResult.from_user(user)
-
-
+# TODO: REMOVE THIS
 @router.post("/toggle_admin", dependencies=[Depends(CurrentToken)])
 def DEBUG_toggle_admin(token: Annotated[Token, Depends(CurrentToken)]) -> UserResult:
     """Toggle a user's admin status"""

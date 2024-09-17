@@ -23,8 +23,8 @@ class ShopWithoutTimeRanges(BaseModel):
     volunteers: int
     min_time: int
     max_time: int
-    available_from: datetime.datetime
-    available_until: datetime.datetime
+    available_from: datetime.date
+    available_until: datetime.date
 
     @classmethod
     def from_shop(cls, shop: Shop):
@@ -88,7 +88,6 @@ def get_shop(shop_id: int) -> ShopWithTimeRanges:
             raise HTTPException(status_code=404, detail="error.shop.not_found")
 
         result = ShopWithTimeRanges.from_shop(shop)
-        print(result)
     return result
 
 
@@ -106,10 +105,12 @@ def create_shop(shop_data: ShopWithoutTimeRanges) -> Shop:
     """Create a new shop"""
     with SessionLock() as session:
         new_shop = Shop(**shop_data.model_dump())
+        new_shop.id = None
         session.add(new_shop)
         session.commit()
         session.refresh(new_shop)
-    return new_shop
+        result = ShopWithTimeRanges.from_shop(new_shop)
+    return result
 
 
 @router.delete("/{shop_id}/delete", dependencies=[Depends(CurrentAdmin)])
@@ -124,18 +125,16 @@ def delete_shop(shop_id: int) -> None:
     return None
 
 
-@router.put("/{shop_id}/update", dependencies=[Depends(CurrentAdmin)])
-def update_shop(shop_id: int, shop_data: ShopWithoutTimeRanges) -> Shop:
+@router.put("/update", dependencies=[Depends(CurrentAdmin)])
+def update_shop(shop_data: ShopWithoutTimeRanges) -> ShopWithTimeRanges:
     """Update a specific shop"""
     with SessionLock() as session:
-        shop = session.get(Shop, shop_id)
+        if shop_data.id is None:
+            raise HTTPException(status_code=400, detail="error.shop.no_id")
+
+        shop = session.get(Shop, shop_data.id)
         if shop is None:
             raise HTTPException(status_code=404, detail="error.shop.not_found")
-        if shop_data.id is not None:
-            if shop_data.id != shop.id:
-                raise HTTPException(status_code=400, detail="error.shop.id_mismatch")
-        else:
-            shop_data.id = shop_id
 
         # Update shop attributes
         for key, value in shop_data.model_dump().items():
@@ -143,16 +142,19 @@ def update_shop(shop_id: int, shop_data: ShopWithoutTimeRanges) -> Shop:
             session.add(shop)
         session.commit()
         session.refresh(shop)
-    return shop
+        result = ShopWithTimeRanges.from_shop(shop)
+    return result
 
 
 @timerange_router.post("/{shop_id}/create", dependencies=[Depends(CurrentAdmin)])
-def create_time_range(shop_id: int, time_range: TimeRange) -> OpeningTime:
+def create_time_range(shop_id: int, time_range: TimeRange) -> ShopWithTimeRanges:
     """Create a new time range for a shop"""
     with SessionLock() as session:
         shop = session.get(Shop, shop_id)
         if shop is None:
             raise HTTPException(status_code=404, detail="error.shop.not_found")
+
+        time_range.id = None
 
         # Check for overlapping time ranges
         for existing_time_range in shop.open_ranges:
@@ -174,11 +176,14 @@ def create_time_range(shop_id: int, time_range: TimeRange) -> OpeningTime:
                 status_code=400, detail="error.shop.negative_time_range"
             )
 
-        new_time_range = OpeningTime(shop=shop, **time_range.model_dump())
+        new_time_range = OpeningTime(shop_id=shop.id, **time_range.model_dump())
         session.add(new_time_range)
         session.commit()
         session.refresh(new_time_range)
-    return new_time_range
+        session.refresh(shop)
+
+        result = ShopWithTimeRanges.from_shop(shop)
+    return result
 
 
 @timerange_router.delete(
@@ -198,7 +203,7 @@ def delete_time_range(time_range_id: int) -> None:
 
 
 @timerange_router.put("/{time_range_id}/update", dependencies=[Depends(CurrentAdmin)])
-def update_time_range(time_range_id: int, new_tr: TimeRange) -> OpeningTime:
+def update_time_range(time_range_id: int, new_tr: TimeRange) -> ShopWithTimeRanges:
     """Update a specific time range"""
     with SessionLock() as session:
         time_range = session.get(OpeningTime, time_range_id)
@@ -214,4 +219,6 @@ def update_time_range(time_range_id: int, new_tr: TimeRange) -> OpeningTime:
         session.add(time_range)
         session.commit()
         session.refresh(time_range)
-    return time_range
+
+        result = ShopWithTimeRanges.from_shop(time_range.shop)
+    return result

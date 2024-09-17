@@ -2,7 +2,14 @@ import datetime
 import json
 from sqlmodel import SQLModel, create_engine, Session as _Session
 from sqlalchemy import Engine
-from shared_planner.db.models import User, Shop, OpeningTime, Reservation, Token
+from shared_planner.db.models import (
+    User,
+    Shop,
+    OpeningTime,
+    Reservation,
+    Token,
+    Notification,
+)
 
 
 from contextlib import contextmanager
@@ -51,10 +58,10 @@ def load_dummies():
     shops = data["shops"]
     for shop in shops:
         shop["available_from"] = datetime.datetime.strptime(
-            shop["available_from"], "%Y-%m-%d %H:%M:%S"
+            shop["available_from"], "%Y-%m-%d"
         )
         shop["available_until"] = datetime.datetime.strptime(
-            shop["available_until"], "%Y-%m-%d %H:%M:%S"
+            shop["available_until"], "%Y-%m-%d"
         )
     opening_times = data["opening_times"]
     for opening_time in opening_times:
@@ -83,7 +90,16 @@ def load_dummies():
     with SessionLock() as session:
         print("Adding data")
         for user in users:
-            session.add(User(**user))
+            u = User(**user)
+            session.add(u)
+            session.add(
+                Notification.create(u, "notification.test", {"test": "test value"})
+            )
+            session.add(
+                Notification.create(
+                    u, "notification.test", {"test": "test reminder"}, is_reminder=True
+                )
+            )
         for shop in shops:
             session.add(Shop(**shop))
         for opening_time in opening_times:

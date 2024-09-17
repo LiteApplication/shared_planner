@@ -6,7 +6,6 @@ import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import EnsureLoggedIn from '@/components/EnsureLoggedIn.vue';
-import MainMenu from '@/components/MainMenu.vue';
 import ShopItem from '@/components/list/ShopItem.vue';
 import { exampleShop, type Shop } from '@/api/types';
 import { shopApi } from '@/main';
@@ -32,7 +31,7 @@ onMounted(() => {
 </script>
 <template>
     <EnsureLoggedIn />
-    <MainMenu />
+    <h2 class="m-4 text-center text-xl">{{ $t("message.shops.select") }}</h2>
     <div>
         <ShopItem v-for="(shop, index) in shops" :key="shop.id === -1 ? index : shop.id" :shop="shop" />
     </div>
@@ -43,7 +42,6 @@ export default defineComponent({
     name: 'ShopsView',
     components: {
         EnsureLoggedIn,
-        MainMenu,
         ShopItem
     }
 })

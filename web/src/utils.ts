@@ -1,4 +1,3 @@
-import type { Ref } from "vue";
 import type { ComposerTranslation } from "vue-i18n";
 import type { ShopWithOpenRange, OpenRange, Shop } from "./api/types";
 
@@ -60,11 +59,25 @@ function getWeekDay(date: Date): number {
 
 
 function networkDateTime(date: Date) {
+    if (!date) {
+        date = new Date(0);
+    }
     // get local timezone offset
     const offset = date.getTimezoneOffset();
     date.setMinutes(date.getMinutes() - offset);
 
     return date.toISOString().slice(0, 19);
+}
+
+function networkDate(date: Date) {
+    if (!date) {
+        date = new Date(0);
+    }
+    // get local timezone offset
+    const offset = date.getTimezoneOffset();
+    date.setMinutes(date.getMinutes() - offset);
+
+    return date.toISOString().slice(0, 10);
 }
 
 function date_start_end(start: string, duration_minutes: number, locale: string): { date: string, start: string, end: string } {
@@ -76,12 +89,45 @@ function date_start_end(start: string, duration_minutes: number, locale: string)
     }
 }
 
-function validateDates(shopData: ShopWithOpenRange | Shop | null | undefined, startTime: Date, endTime: Date, setError: (a: string | null) => void, day: number, $t: ComposerTranslation): boolean {
+function validateDates(shopData: ShopWithOpenRange | Shop | null | undefined, startTime: Date, endTime: Date, setError: (a: string | null) => void, day: number, week: number, year: number, $t: ComposerTranslation): boolean {
     if (!shopData) {
         setError($t('error.shop.not_loaded'));
         return false;
     }
 
+
+    // Do not check the day if it is set to -1 or if the shop's data does not contain open_ranges
+    if (day !== -1 && ("open_ranges" in shopData)) {
+        const shopStart = (new Date(shopData.available_from)).getTime();
+        const shopEnd = (new Date(shopData.available_until)).getTime();
+
+        // Check that the start date is inside an open range
+        const open_ranges = shopData?.open_ranges.filter(
+            (range: OpenRange) => {
+                const rangeDay = getDateOfWeekDay(year, week, range.day).getTime();
+                return range.day === day && rangeDay >= shopStart && rangeDay <= shopEnd;
+            }
+        );
+
+        if (!open_ranges.length) {
+            setError($t('error.reservation.not_open_day'));
+            return false;
+        }
+
+        if (!open_ranges.find(
+            (range: OpenRange) => {
+                const start_time = timeToMinutes(range.start_time);
+                const end_time = timeToMinutes(range.end_time);
+                const task_time = DateToMinutes(startTime);
+                const task_time_end = DateToMinutes(endTime);
+
+                return task_time >= start_time && task_time < end_time && task_time_end <= end_time;
+            }
+        )) {
+            setError($t('error.reservation.not_open_time'));
+            return false;
+        }
+    }
 
     const timeDiffMinutes = DateToMinutes(endTime) - DateToMinutes(startTime);
 
@@ -98,43 +144,6 @@ function validateDates(shopData: ShopWithOpenRange | Shop | null | undefined, st
 
     if (timeDiffMinutes > shopData.max_time) {
         setError($t('error.reservation.too_long', { max_time: shopData.max_time }));
-        return false;
-    }
-
-
-    // Do not check the day if it is set to -1
-    if (day === -1) {
-        setError(null);
-        return true;
-    }
-
-    if (!("open_ranges" in shopData)) {
-        // Skip checking if we are dealing with a Shop object
-        setError(null);
-        return true;
-    }
-
-    // Check that the start date is inside an open range
-    const open_ranges = shopData?.open_ranges.filter(
-        (range: OpenRange) => range.day === day
-    );
-
-    if (!open_ranges.length) {
-        setError($t('error.reservation.not_open_day'));
-        return false;
-    }
-
-    if (!open_ranges.find(
-        (range: OpenRange) => {
-            const start_time = timeToMinutes(range.start_time);
-            const end_time = timeToMinutes(range.end_time);
-            const task_time = DateToMinutes(startTime);
-            const task_time_end = DateToMinutes(endTime);
-
-            return task_time >= start_time && task_time < end_time && task_time_end <= end_time;
-        }
-    )) {
-        setError($t('error.reservation.not_open_time'));
         return false;
     }
 
@@ -171,6 +180,7 @@ export {
     getDateOfWeekDay,
     DateToMinutes,
     networkDateTime,
+    networkDate,
     date_start_end,
     validateDates,
     getWeekDay,

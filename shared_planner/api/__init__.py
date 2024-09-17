@@ -6,6 +6,8 @@ from shared_planner.api.auth import router as auth_router
 from shared_planner.api.users import router as users_router
 from shared_planner.api.shops import router as shops_router, timerange_router
 from shared_planner.api.reservations import router as reservations_router
+from shared_planner.api.settings import router as settings_router
+from shared_planner.api.notifications import router as notifications_router
 
 app = FastAPI(swagger_ui_parameters={"persistAuthorization": True}, root_path="/api")
 
@@ -22,5 +24,7 @@ app.include_router(users_router)
 app.include_router(shops_router)
 app.include_router(timerange_router)
 app.include_router(reservations_router)
+app.include_router(settings_router)
+app.include_router(notifications_router)
 
-# app.mount("/", StaticFiles(directory="web/dist", html=True), name="web")
+app.mount("/", StaticFiles(directory="web/dist", html=True), name="web")

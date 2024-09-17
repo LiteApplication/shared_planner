@@ -4,12 +4,12 @@
         <div class="flex flex-col gap-6 mb-8">
             <FloatLabel>
                 <DatePicker v-model="dialogTimeStart" time-only fluid input-id="start_time"
-                    :invalid="!validateDates(shopData, dialogTimeStart, dialogTimeEnd, setError, dayOfWeek, $t)" />
+                    :invalid="!validateDates(shopData, dialogTimeStart, dialogTimeEnd, setError, dayOfWeek, week, year, $t)" />
                 <label for="start_time">{{ $t('message.reservation.start_time') }}</label>
             </FloatLabel>
             <FloatLabel>
                 <DatePicker v-model="dialogTimeEnd" time-only fluid input-id="end_time"
-                    :invalid="!validateDates(shopData, dialogTimeStart, dialogTimeEnd, setError, dayOfWeek, $t)" />
+                    :invalid="!validateDates(shopData, dialogTimeStart, dialogTimeEnd, setError, dayOfWeek, week, year, $t)" />
 
                 <label for="end_time">{{ $t('message.reservation.end_time') }}</label>
             </FloatLabel>
@@ -32,14 +32,14 @@
 import type { Shop, ShopWithOpenRange } from '@/api/types';
 import { reservationApi } from '@/main';
 import type { Task } from '@/types';
-import { DateToMinutes, getWeekDay, networkDateTime, validateDates } from '@/utils';
+import { DateToMinutes, DateToWeekNumber, getWeekDay, networkDateTime, validateDates } from '@/utils';
 import Button from 'primevue/button';
 import DatePicker from 'primevue/datepicker';
 import Dialog from 'primevue/dialog';
 import FloatLabel from 'primevue/floatlabel';
 import Message from 'primevue/message';
 import { useToast } from 'primevue/usetoast';
-import { computed, defineComponent, ref, type PropType } from 'vue';
+import { computed, defineComponent, ref, watch, type PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const $t = useI18n().t;
@@ -91,6 +91,8 @@ function setError(message: string | null) {
 
 
 const dayOfWeek = computed(() => getWeekDay(dialogTimeStart.value));
+const week = computed(() => DateToWeekNumber(dialogTimeStart.value));
+const year = computed(() => dialogTimeStart.value.getFullYear());
 
 
 function onTaskDelete() {

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import Menubar from 'primevue/menubar';
-import { defineComponent, ref } from 'vue';
+import { defineComponent, onMounted, ref } from 'vue';
 import { PrimeIcons } from '@primevue/core/api';
 import { useI18n } from 'vue-i18n';
-import { authApi } from '@/main';
+import { authApi, notificationsApi } from '@/main';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import LocaleChanger from './LocaleChanger.vue';
@@ -16,7 +16,28 @@ const logout = () => {
     router.push('/login');
 };
 
-const items = ref([
+
+const notificationModel = defineModel('notificationCount');
+
+const props = defineProps({
+    isAdmin: Boolean
+})
+
+
+onMounted(() => {
+    // Fetch notification count
+    notificationsApi.count().then(
+        (r) => {
+            notificationModel.value = r;
+        }
+    ).catch(
+        (e) => {
+            console.error("Failed to fetch notification count", e);
+        }
+    );
+});
+
+const items = ref<any>([
     {
         label: $t("menu.my_reservations"),
         icon: PrimeIcons.CALENDAR,
@@ -26,7 +47,10 @@ const items = ref([
         label: $t("menu.create_reservation"),
         icon: PrimeIcons.PLUS,
         route: "/shops"
-    },
+    }
+]);
+
+const adminItems = ref(
     {
         label: $t("menu.admin.title"),
         icon: PrimeIcons.COG,
@@ -45,10 +69,19 @@ const items = ref([
                 label: $t("menu.admin.reservations"),
                 icon: PrimeIcons.CALENDAR,
                 route: "/admin/reservations"
+            },
+            {
+                label: $t("menu.admin.settings"),
+                icon: PrimeIcons.FILE_EDIT,
+                route: "/admin/settings"
             }
         ]
     }
-]);
+);
+if (props.isAdmin)
+    items.value.push(adminItems);
+
+
 </script>
 
 <template>
@@ -71,7 +104,9 @@ const items = ref([
         </template>
         <!-- Logout button at the end -->
         <template #end>
-            <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2">
+                <Button :icon="PrimeIcons.BELL" :severity="notificationModel == 0 ? 'secondary' : 'info'" :text="notificationModel == 0"
+                    :badge="notificationModel ? notificationModel.toString() : null" @click="router.push('/notifications')" />
                 <LocaleChanger />
                 <Button :label="$t('message.logout')" rounded icon="pi pi-sign-out" @click="logout" severity="danger" outlined />
             </div>
@@ -87,7 +122,7 @@ export default defineComponent({
         Menubar,
         // eslint-disable-next-line vue/no-reserved-component-names
         Button,
-        LocaleChanger
+        LocaleChanger,
     }
 })
 </script>

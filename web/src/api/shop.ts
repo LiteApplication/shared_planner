@@ -20,13 +20,13 @@ export default class ShopApi {
         return result.data;
     }
 
-    async update(shop: ShopWithOpenRange): Promise<ShopWithOpenRange> {
-        const result = await api.post("/shops/{shop.id}/update", shop);
+    async update(shop: Shop): Promise<ShopWithOpenRange> {
+        const result = await api.put("/shops/update", shop);
         return result.data;
     }
 
     async delete(id: number): Promise<void> {
-        const result = await api.post(`/shops/${id}/delete`);
+        const result = await api.delete(`/shops/${id}/delete`);
         return result.data;
     }
 
@@ -36,12 +36,12 @@ export default class ShopApi {
     }
 
     async deleteOpenRange(id: number): Promise<ShopWithOpenRange> {
-        const result = await api.post(`/timeranges/${id}/delete`);
+        const result = await api.delete(`/timeranges/${id}/delete`);
         return result.data;
     }
 
     async updateOpenRange(openRange: OpenRange): Promise<ShopWithOpenRange> {
-        const result = await api.post(`/timeranges/${openRange.id}/update`, openRange);
+        const result = await api.put(`/timeranges/${openRange.id}/update`, openRange);
         return result.data;
     }
 
