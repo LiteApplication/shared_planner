@@ -167,6 +167,8 @@ function addTaskTime(day: number, { time }: { time: string }) {
     dialogDate.value = getDateOfWeekDay(props.week, day);
     const task_date_ms = dialogDate.value.getTime();
     dialogTimeStart.value = new Date(task_date_ms + timeToMinutes(time) * 60 * 1000);
+    // Add the timezone offset
+    dialogTimeStart.value.setMinutes(dialogTimeStart.value.getMinutes() + dialogTimeStart.value.getTimezoneOffset());
     if (shopData.value)
         dialogTimeEnd.value = new Date(dialogTimeStart.value.getTime() + shopData.value?.min_time * 60 * 2 * 1000);
     else dialogTimeEnd.value = new Date(dialogTimeStart.value.getTime() + 60 * 60 * 1000); // 1 hour by default
