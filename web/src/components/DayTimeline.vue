@@ -4,7 +4,8 @@
             <p>{{ title }}</p><Button @click="$emit('addTask')" severity="info">+</Button>
         </div>
         <div class=" timeline-body divide-y divide-slate-500" :style="cssVars">
-            <div v-for="(time, index) in timeIntervals" :key="index" class="time-line">
+            <div v-for="(time, index) in timeIntervals" :key="index" class="time-line"
+                @click="index > 0 ? $emit('timeClicked', timeIntervals[index - 1]) : $emit('addTask')">
                 <span v-if="time.showLabel" class="time-label text-slate-500">{{ time.label }}</span>
             </div>
 
@@ -25,6 +26,12 @@ import { defineComponent, type PropType } from 'vue';
 import { minutesToTime } from '../utils';
 import { type Task } from '../types';
 import Button from 'primevue/button';
+
+defineEmits<{
+    addTask: [];
+    clickTask: [task: Task];
+    timeClicked: [time: { time: string; showLabel: boolean; label: string }];
+}>();
 </script>
 
 <script lang="ts">
@@ -178,6 +185,7 @@ export default defineComponent({
     width: 100%;
     box-sizing: border-box;
     height: 50rem;
+    pointer-events: none;
 }
 
 .time-line {
@@ -185,6 +193,7 @@ export default defineComponent({
     display: flex;
     align-items: end;
     height: 100%;
+    cursor: zoom-in;
 }
 
 .time-label {
@@ -199,8 +208,10 @@ export default defineComponent({
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    z-index: 2;
+    z-index: 3;
     transition: width 0.3s;
     box-sizing: border-box;
+    pointer-events: auto;
+
 }
 </style>

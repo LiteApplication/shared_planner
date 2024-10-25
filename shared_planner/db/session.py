@@ -30,7 +30,7 @@ class EngineContainer(metaclass=Singleton):
 
     def __init__(self):
         self.engine = create_engine(
-            "sqlite:///database.db", pool_timeout=0, max_overflow=0, pool_size=3
+            "sqlite:///database.db", pool_timeout=10, max_overflow=50, pool_size=5
         )
         SQLModel.metadata.create_all(self.engine)
 

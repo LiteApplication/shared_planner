@@ -3,11 +3,13 @@ import datetime
 from typing import Annotated
 from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel
+from sqlmodel import select
 
 from shared_planner.api.auth import CurrentAdmin, CurrentUser, CurrentToken
 from shared_planner.api.shops import ShopWithoutTimeRanges
-from shared_planner.db.models import Reservation, Shop, User, Token
+from shared_planner.db.models import Reservation, Shop, User, Token, Notification
 from shared_planner.db.session import SessionLock
+from shared_planner.db.settings import get
 
 router = APIRouter(prefix="/res", tags=["reservations"])
 
@@ -34,12 +36,12 @@ class ReservedTimeRange(BaseModel):
 
     @classmethod
     def from_reservation(
-        cls, reservation: Reservation, user: User
+        cls, reservation: Reservation, user: User | None
     ) -> "ReservedTimeRange":
-        if reservation.user_id == user.id:
+        if user is not None and reservation.user_id == user.id:
             status = -2
             title = "message.reservation.booked_by_you"
-        elif user.admin:
+        elif user is None or user.admin:
             status = reservation.user_id
             title = f"{reservation.user.full_name} ({reservation.user.group})"
         else:
@@ -58,6 +60,14 @@ class ReservedTimeRange(BaseModel):
             title=title,
             shop=ShopWithoutTimeRanges.from_shop(reservation.shop),
         )
+
+
+class NewReservation(BaseModel):
+    start_time: datetime.datetime
+    duration_minutes: int
+    user_id: int
+    shop_id: int
+    validated: bool = False
 
 
 @router.get("/{shop_id}/{year}/{week}/list")
@@ -81,6 +91,7 @@ def get_planning(
         # load the time ranges of the shop
         used_ranges = shop.reservations
 
+        # Get the start of the week
         week_start = datetime.datetime.strptime(f"{year}-W{week}-1", "%Y-W%W-%w")
 
         # Create a list of time ranges per day
@@ -153,6 +164,15 @@ def check_reservation(
     if duration_minutes > shop.max_time and not user.admin:
         raise HTTPException(status_code=400, detail="error.reservation.too_long")
 
+    if start_time < datetime.datetime.now() and not user.admin:
+        raise HTTPException(status_code=400, detail="error.reservation.past_time")
+
+    if start_time < shop.available_from and not user.admin:
+        raise HTTPException(status_code=400, detail="error.reservation.before_open")
+
+    if start_time > shop.available_until and not user.admin:
+        raise HTTPException(status_code=400, detail="error.reservation.after_close")
+
     # Get the day of the week
     day = start_time.weekday()
 
@@ -166,7 +186,10 @@ def check_reservation(
         ):
             break
     else:
-        raise HTTPException(status_code=400, detail="error.reservation.outside_open")
+        if not user.admin:
+            raise HTTPException(
+                status_code=400, detail="error.reservation.outside_open"
+            )
 
 
 @router.post("/{shop_id}/book")
@@ -195,6 +218,39 @@ def book_time_range(
             start_time=start_time,
             end_time=start_time + duration,
         )
+
+        session.add(
+            Notification.create(
+                user,
+                "notification.reservation_created",
+                {
+                    "shop": shop.name,
+                    "start_time": start_time.strftime("%Y-%m-%d %H:%M"),
+                    "duration_minutes": duration.total_seconds() // 60,
+                },
+                route=f"/shops/{shop.id}/{start_time.year}/{start_time.isocalendar()[1]}",
+                is_reminder=False,
+                mail=get("email_confirm_reservation").asBool(),
+            )
+        )
+
+        if get("notif_admin_reservation_created").asBool():
+            session.add(
+                Notification.create(
+                    None,
+                    "notification.admin.reservation_created",
+                    {
+                        "user": user.full_name,
+                        "shop": shop.name,
+                        "start_time": start_time.strftime("%Y-%m-%d %H:%M"),
+                        "duration": duration_minutes,
+                    },
+                    route=f"/shops/{shop.id}/{start_time.year}/{start_time.isocalendar()[1]}",
+                    is_reminder=True,
+                    mail=True,
+                )
+            )
+
         session.add(new_reservation)
         session.commit()
         session.refresh(new_reservation)
@@ -232,9 +288,34 @@ def update_reservation(
             exclude_res_id=reservation.id,
         )
 
+        previous_start_time = reservation.start_time
+        previous_duration = (
+            reservation.end_time - reservation.start_time
+        ).total_seconds() // 60
+
         reservation.start_time = start_time
         reservation.end_time = start_time + datetime.timedelta(minutes=duration_minutes)
         session.add(reservation)
+
+        if get("notif_admin_reservation_modified").asBool():
+            Notification.create(
+                None,
+                "notification.reservation_modified",
+                {
+                    "user": user.full_name,
+                    "shop": reservation.shop.name,
+                    "start_time": reservation.start_time.strftime("%Y-%m-%d %H:%M"),
+                    "duration": duration_minutes,
+                    "previous_start_time": previous_start_time.strftime(
+                        "%Y-%m-%d %H:%M"
+                    ),
+                    "previous_duration": previous_duration,
+                },
+                route=f"/shop/{reservation.shop.id}/{start_time.year}/{start_time.isocalendar()[1]}",
+                is_reminder=False,
+                mail=True,
+            )
+
         session.commit()
         session.refresh(reservation)
         result = ReservedTimeRange.from_reservation(reservation, user)
@@ -257,6 +338,24 @@ def cancel_reservation(
                 status_code=400, detail="error.reservation.cant_cancel_validated"
             )
         session.delete(reservation)
+
+        if get("notif_admin_reservation_cancel").asBool():
+            Notification.create(
+                None,
+                "notification.reservation_cancelled",
+                {
+                    "user": user.full_name,
+                    "shop": reservation.shop.name,
+                    "start_time": reservation.start_time.strftime("%Y-%m-%d %H:%M"),
+                    "duration": (
+                        reservation.end_time - reservation.start_time
+                    ).total_seconds()
+                    // 60,
+                },
+                route=f"/shop/{reservation.shop.id}/{reservation.start_time.year}/{reservation.start_time.isocalendar()[1]}",
+                is_reminder=False,
+                mail=True,
+            )
         session.commit()
     return None
 
@@ -316,3 +415,115 @@ def get_user_reservations(
             key=lambda res: res.start_time,
         )
     return reservations
+
+
+@router.get("/list_self_future")
+def get_user_future_reservations(
+    token: Annotated[Token, Depends(CurrentToken)],
+) -> list[ReservedTimeRange]:
+    """Get the reservations of the current user"""
+    with SessionLock() as session:
+        user = session.get(User, token.user_id)
+        if user is None:
+            raise HTTPException(status_code=404, detail="error.user.not_found")
+        reservations = sorted(
+            [
+                ReservedTimeRange.from_reservation(res, user)
+                for res in filter(
+                    lambda res: res.end_time > datetime.datetime.now(),
+                    user.reservations,
+                )
+            ],
+            key=lambda res: res.start_time,
+        )
+    return reservations
+
+
+@router.post("/search", dependencies=[Depends(CurrentAdmin)])
+def search(
+    shop_id: int | None = Body(None),
+    user_id: int | None = Body(None),
+    year: int | None = Body(None),
+    week: int | None = Body(None),
+) -> list[ReservedTimeRange]:
+    """Search the database for reservations.
+
+    If a search criteria is None, it is ignored.
+    """
+    with SessionLock() as session:
+        query = select(Reservation)
+        if shop_id is not None:
+            query = query.where(Reservation.shop_id == shop_id)
+        if user_id is not None:
+            query = query.where(Reservation.user_id == user_id)
+            print(query)
+        if year is not None:
+            year_start = datetime.datetime(year, 1, 1)
+            year_end = datetime.datetime(year + 1, 1, 1)
+            query = query.where(
+                Reservation.start_time >= year_start, Reservation.start_time < year_end
+            )
+        if week is not None:
+            if year is None:
+                raise HTTPException(
+                    status_code=400, detail="error.reservation.year_required"
+                )
+
+            week_start = datetime.datetime.strptime(f"{year}-W{week}-1", "%Y-W%W-%w")
+            week_end = week_start + datetime.timedelta(days=7)
+            query = query.where(
+                Reservation.start_time >= week_start, Reservation.start_time < week_end
+            )
+        reservations = session.exec(query)
+
+        result = [ReservedTimeRange.from_reservation(res, None) for res in reservations]
+
+    return result
+
+
+@router.put("/{reservation_id}/reassign", dependencies=[Depends(CurrentAdmin)])
+def reassign_reservation(
+    reservation_id: int,
+    user_id: int = Body(...),
+) -> ReservedTimeRange:
+    """Reassign a reservation to a different user"""
+    with SessionLock() as session:
+        reservation = session.get(Reservation, reservation_id)
+        if reservation is None:
+            raise HTTPException(status_code=404, detail="error.reservation.not_found")
+        user = session.get(User, user_id)
+        if user is None:
+            raise HTTPException(status_code=404, detail="error.user.not_found")
+
+        Notification.create(
+            reservation.user,
+            "notification.reservation_reassigned_old",
+            {
+                "shop": reservation.shop.name,
+                "start_time": reservation.start_time.strftime("%Y-%m-%d %H:%M"),
+                "duration": (
+                    reservation.end_time - reservation.start_time
+                ).total_seconds()
+                // 60,
+            },
+        )
+        Notification.create(
+            user,
+            "notification.reservation_reassigned_new",
+            {
+                "shop": reservation.shop.name,
+                "start_time": reservation.start_time.strftime("%Y-%m-%d %H:%M"),
+                "duration": (
+                    reservation.end_time - reservation.start_time
+                ).total_seconds()
+                // 60,
+            },
+            route=f"/shop/{reservation.shop.id}/{reservation.start_time.year}/{reservation.start_time.isocalendar()[1]}",
+        )
+
+        reservation.user_id = user.id
+        session.add(reservation)
+        session.commit()
+        session.refresh(reservation)
+        result = ReservedTimeRange.from_reservation(reservation, user)
+    return result

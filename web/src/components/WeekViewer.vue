@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { defineComponent, onMounted, ref, watch, type Ref } from 'vue';
 import { reservationApi, shopApi } from '@/main';
-import type { OpenRange, ReservedTimeRange, ShopWithOpenRange } from '@/api/types';
+import type { OpenRange, ReservedTimeRange, ShopWithOpenRange, User } from '@/api/types';
 import DayTimeline from './DayTimeline.vue';
 import { useI18n } from 'vue-i18n';
-import { getDateOfWeekDay, minutesToTime, reformatTime, timeToMinutes } from '../utils';
+import { getDateOfWeekDay, minutesToTime, networkDateTime, reformatTime, timeToMinutes } from '../utils';
 import { type Task } from '../types';
 import { useToast } from 'primevue/usetoast';
-import EditReservationDialog from './dialog/EditReservationDialog.vue';
-import AddReservationDialog from './dialog/AddReservationDialog.vue';
+import ReservationDialog from './dialog/ReservationDialog.vue';
 import handleError from '@/error_handler';
 
 
@@ -29,6 +28,7 @@ const shopData: Ref<ShopWithOpenRange | null> = ref(null);
 const editTask: Ref<Task | null> = ref(null);
 const editVisible = ref(false);
 const addVisible = ref(false);
+const dialogDate: Ref<Date> = ref(new Date());
 const dialogTimeStart: Ref<Date> = ref(new Date());
 const dialogTimeEnd: Ref<Date> = ref(new Date());
 const dialogSelectedDay: Ref<number> = ref(0);
@@ -84,7 +84,7 @@ function onLoadShop(shop: ShopWithOpenRange) {
                 (day_planning, index) => {
 
                     const result: Task[] = shop.open_ranges.filter(
-                        (range: OpenRange) => (index === range.day) && (weekStart + days(index) >= shopStart) && (weekStart + days(index) <= shopEnd)
+                        (range: OpenRange) => (index === range.day) && (weekStart + days(index + 1) >= shopStart) && (weekStart + days(index) <= shopEnd)
                     ).map(
                         (range: OpenRange) => ({
                             start_time: timeToMinutes(range.start_time),
@@ -98,6 +98,7 @@ function onLoadShop(shop: ShopWithOpenRange) {
                             status: -3
                         })
                     );
+
 
                     result.push(...day_planning.map(
                         (range: ReservedTimeRange) => ({
@@ -129,10 +130,9 @@ async function fetchShop(shopId: number) {
     shopApi.get(shopId).then(
         (shop) => {
             onLoadShop(shop);
-        },
-        error => {
-            console.error(error)
         }
+    ).catch(
+        handleError(toast, $t, "error.shop.unknown")
     );
 }
 
@@ -157,10 +157,25 @@ function onTaskClick(day: number, task: Task) {
             dialogTimeStart.value = new Date(task_date_ms + (task.start_time) * 60 * 1000);
             // Set the end time on the same day
             dialogTimeEnd.value = new Date(task_date_ms + (task.end_time) * 60 * 1000);
+            dialogDate.value = task_date;
             dialogSelectedDay.value = day;
             editVisible.value = true;
         }
     }
+}
+
+function addTaskTime(day: number, { time }: { time: string }) {
+    dialogDate.value = getDateOfWeekDay(props.year, props.weekNumber, day);
+    const task_date_ms = dialogDate.value.getTime();
+    dialogTimeStart.value = new Date(task_date_ms + timeToMinutes(time) * 60 * 1000);
+    if (shopData.value)
+        dialogTimeEnd.value = new Date(dialogTimeStart.value.getTime() + shopData.value?.min_time * 60 * 2 * 1000);
+    else dialogTimeEnd.value = new Date(dialogTimeStart.value.getTime() + 60 * 60 * 1000); // 1 hour by default
+
+    dialogSelectedDay.value = day;
+    editVisible.value = false;
+    addVisible.value = true;
+
 }
 
 
@@ -170,8 +185,8 @@ function onAddTask(day: number) {
     dialogSelectedDay.value = day;
 
     // Get the corresponding date
-    const task_date = getDateOfWeekDay(props.year, props.weekNumber, day);
-    const task_date_ms = task_date.getTime();
+    dialogDate.value = getDateOfWeekDay(props.year, props.weekNumber, day);
+    const task_date_ms = dialogDate.value.getTime();
 
     // Get the first 1-hour slot inside an open range with less than shop.volunteers reservations
     const open_ranges = shopData.value?.open_ranges.filter(
@@ -216,6 +231,56 @@ function onAddTask(day: number) {
 }
 
 
+function addReservation(startDate: Date, endDate: Date, user: User | null, validated: boolean) {
+    if (!shopData.value) {
+        console.error("shopData is null");
+        return;
+    }
+    reservationApi.reserve(shopData.value.id,
+        { duration_minutes: (endDate.getTime() - startDate.getTime()) / 1000 / 60, start_time: networkDateTime(startDate) }
+    ).then(
+        () => {
+            fetchShop(props.shopId);
+            addVisible.value = false;
+        }
+    ).catch(
+        handleError(toast, $t, "error.reservation.not_added")
+    );
+
+}
+
+function updateReservation(startDate: Date, endDate: Date) {
+    if (!editTask.value) {
+        console.error("editTask is null");
+        return;
+    }
+    reservationApi.update(editTask.value.id!,
+        { duration_minutes: (endDate.getTime() - startDate.getTime()) / 1000 / 60, start_time: networkDateTime(startDate) }
+    ).then(
+        () => {
+            fetchShop(props.shopId);
+            editVisible.value = false;
+        }
+    ).catch(
+        handleError(toast, $t, "error.reservation.not_updated")
+    );
+}
+
+function deleteReservation() {
+    if (!editTask.value) {
+        console.error("editTask is null");
+        return;
+    }
+    reservationApi.cancel(editTask.value.id!).then(
+        () => {
+            fetchShop(props.shopId);
+            editVisible.value = false;
+        }
+    ).catch(
+        handleError(toast, $t, "error.reservation.not_deleted")
+    );
+}
+
 
 
 
@@ -223,7 +288,7 @@ function onAddTask(day: number) {
 </script>
 <template>
     <div v-if="shopData">
-        <div id="legende" class="rounded p-4 m-2 mb-0 bg-slate-100 dark:bg-slate-800">
+        <div id="legend" class="rounded p-4 m-4 mb-0 bg-slate-100 dark:bg-slate-800">
             <div class="flex">
                 <div id="open" class="rounded square-legend"></div>
                 <p>{{ $t("message.shops.open") }}</p>
@@ -240,16 +305,21 @@ function onAddTask(day: number) {
 
         </div>
         <div class="weekview">
-            <DayTimeline v-for="[index, tasks] in displayedTasks.entries()" :key="index" :title="$t(`day.${index}`)" :tasks="tasks"
-                :startOfDay="dayBounds.start_time" :endOfDay="dayBounds.end_time" @click-task="(task: Task) => onTaskClick(index, task)"
-                @add-task="onAddTask(index)" />
+            <div class="weekview-container">
+
+                <DayTimeline v-for="[index, tasks] in displayedTasks.entries()" :key="index" :title="$t(`day.${index}`)" :tasks="tasks"
+                    :startOfDay="dayBounds.start_time" :endOfDay="dayBounds.end_time" @click-task="(task: Task) => onTaskClick(index, task)"
+                    @add-task="onAddTask(index)" @time-clicked="time => addTaskTime(index, time)" />
+            </div>
         </div>
     </div>
-    <EditReservationDialog :date="getDateOfWeekDay(props.year, props.weekNumber, dialogSelectedDay)" :task="editTask" v-model:visible="editVisible"
-        :shopData="shopData" @update:task="fetchShop(props.shopId)" v-model:start-date="dialogTimeStart" v-model:end-date="dialogTimeEnd"
-        v-if="editTask" />
-    <AddReservationDialog @update:tasks="fetchShop(props.shopId)" v-model:visible="addVisible" :shopData="shopData"
-        v-model:start-date="dialogTimeStart" v-model:end-date="dialogTimeEnd" v-if="addVisible" />
+    <ReservationDialog :title="$t('message.reservation.add_title')" :description="$t('message.reservation.add_description')" show-date show-time
+        :shop-data="shopData" v-model:visible="addVisible" v-model:date="dialogDate" v-model:start-time="dialogTimeStart"
+        v-model:end-time="dialogTimeEnd" @save="addReservation"></ReservationDialog>
+    <ReservationDialog :title="$t('message.reservation.edit_title')" :description="$t('message.reservation.edit_description')" show-time show-delete
+        :shop-data="shopData" v-model:visible="editVisible" v-model:date="dialogDate" v-model:start-time="dialogTimeStart"
+        v-model:end-time="dialogTimeEnd" @save="updateReservation" @delete="deleteReservation"></ReservationDialog>
+
 </template>
 
 <script lang="ts">
@@ -257,18 +327,24 @@ export default defineComponent({
     name: 'WeekViewer',
     components: {
         DayTimeline,
-        EditReservationDialog,
-        AddReservationDialog
+        ReservationDialog,
     },
 });
 </script>
 
 <style scoped>
 .weekview {
+    max-width: 100%;
+    overflow-x: scroll;
+}
+
+.weekview-container {
     display: flex;
-    gap: 0 rem;
+    gap: 0;
+    flex-wrap: none;
+    justify-content: space-evenly;
+    min-width: fit-content;
     width: 100%;
-    justify-content: space-around;
 }
 
 .square-legend {

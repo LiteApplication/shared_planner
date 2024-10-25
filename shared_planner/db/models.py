@@ -1,7 +1,10 @@
+import base64
 import datetime
+import hashlib
 import json
 from typing import TYPE_CHECKING
-from sqlmodel import Field, SQLModel, Relationship, func, not_, or_, select
+from fastapi.exceptions import HTTPException
+from sqlmodel import Field, SQLModel, Relationship, func, not_, or_, and_, select
 import bcrypt
 
 if TYPE_CHECKING:
@@ -27,10 +30,13 @@ class User(SQLModel, table=True):
 
     def set_password(self, password: str):
         salt = bcrypt.gensalt()
-        self.hashed_password = bcrypt.hashpw(password.encode("utf-8"), salt)
+        # Pre-hash to get around the 72 characters limit of bcrypt
+        pre_hash = base64.b64encode(hashlib.sha256(password.encode("utf-8")).digest())
+        self.hashed_password = bcrypt.hashpw(pre_hash, salt)
 
     def check_password(self, password: str) -> bool:
-        return bcrypt.checkpw(password.encode("utf-8"), self.hashed_password)
+        pre_hash = base64.b64encode(hashlib.sha256(password.encode("utf-8")).digest())
+        return bcrypt.checkpw(pre_hash, self.hashed_password)
 
 
 class Shop(SQLModel, table=True):
@@ -76,6 +82,19 @@ class Reservation(SQLModel, table=True):
     start_time: datetime.datetime
     end_time: datetime.datetime
     validated: bool = False
+    reminder_sent: bool = False
+
+    @staticmethod
+    def find_unsent_reminders(
+        session: "SessionLock", hours_before: int
+    ) -> list["Reservation"]:
+        time_before = datetime.datetime.now() + datetime.timedelta(hours=hours_before)
+        return session.exec(
+            select(Reservation).where(
+                not_(Reservation.reminder_sent),
+                Reservation.start_time < time_before,
+            )
+        ).all()
 
 
 class Token(SQLModel, table=True):
@@ -107,10 +126,12 @@ class Setting(SQLModel, table=True):
     value: str
     private: bool = True
 
-    def toInt(self):
+    def asInt(self):
         return int(self.value)
 
-    def toBool(self):
+    def asBool(self):
+        if self.value not in ("True", "False"):
+            raise ValueError(f"Setting '{self.key}' is not a boolean ({self.value})")
         return self.value == "True"
 
 
@@ -123,7 +144,7 @@ class Notification(SQLModel, table=True):
     message: str  # Holds the message description (notification.upcoming_reservation)
     date: datetime.datetime  # Date at which the notification was created
     data: str | None = None  # Holds the variable data for the message (JSON string)
-    is_reminder: bool = False  # Will get deleted after the user has seen it
+    is_reminder: bool = False  # Will get aggregated by the mailer daemon
     read: bool = False  # Has the user seen the notification
     route: str | None = None  # Route to send the user to when clicking on the action
 
@@ -140,7 +161,7 @@ class Notification(SQLModel, table=True):
 
     @staticmethod
     def create(
-        user: User,
+        user: User | None,  # None means admins
         message: str,
         data: dict | None = None,
         route: str | None = None,
@@ -161,8 +182,12 @@ class Notification(SQLModel, table=True):
     def find_unread(user: User, session: "SessionLock") -> list["Notification"]:
         return session.exec(
             select(Notification).where(
+                or_(
+                    Notification.user_id == user.id,
+                    and_(Notification.user_id is None, user.admin),
+                ),
                 not_(Notification.read),
-                or_(Notification.user_id == user.id, Notification.user_id is None),
+                Notification.date < datetime.datetime.now(),
             )
         ).all()
 
@@ -172,22 +197,98 @@ class Notification(SQLModel, table=True):
             select(Notification).where(
                 Notification.mail,
                 not_(Notification.mail_sent),
+                Notification.date < datetime.datetime.now(),
             )
         ).all()
 
     @staticmethod
     def count_unread(user: User, session: "SessionLock") -> int:
-        if user.admin:
-            return session.exec(
-                select(func.count(Notification.id)).where(
-                    not_(Notification.read),
-                    or_(Notification.user_id == user.id, Notification.user_id is None),
-                )
-            ).first()
+        return session.exec(
+            select(func.count(Notification.id)).where(
+                or_(
+                    Notification.user_id == user.id,
+                    and_(Notification.user_id is None, user.admin),
+                ),
+                not_(Notification.read),
+                Notification.date < datetime.datetime.now(),
+            )
+        ).first()
 
-        else:
-            return session.exec(
-                select(func.count(Notification.id)).where(
-                    Notification.user_id == user.id, not_(Notification.read)
-                )
-            ).first()
+    @staticmethod
+    def list_notifications(user: User, session: "SessionLock") -> list["Notification"]:
+        return session.exec(
+            select(Notification).where(
+                or_(
+                    Notification.user_id == user.id,
+                    and_(Notification.user_id is None, user.admin),
+                ),
+                Notification.date < datetime.datetime.now(),
+            )
+        ).all()
+
+
+class PasswordReset(SQLModel, table=True):
+    """Represents a password reset request in the database"""
+
+    id: int = Field(primary_key=True, default=None)
+    user_id: int = Field(foreign_key="user.id")
+    user: User = Relationship()
+    token: str
+    expires_at: datetime.datetime
+    used: bool = False
+    sent: bool = False
+
+    @staticmethod
+    def create(user: User, session: "SessionLock") -> "PasswordReset":
+        # Check if there is already a reset request
+        resets = session.exec(
+            select(func.count(PasswordReset)).where(
+                PasswordReset.user_id == user.id,
+                not_(PasswordReset.used),
+                PasswordReset.expires_at > datetime.datetime.now(),
+            )
+        ).first()
+        if resets[0] > 0:
+            raise HTTPException(status_code=400, detail="error.reset_request_exists")
+        # Create the reset request
+        return PasswordReset(
+            user=user,
+            token=bcrypt.gensalt(64).decode("utf-8"),
+            expires_at=datetime.datetime.now() + datetime.timedelta(days=1),
+        )
+
+    @staticmethod
+    def check_token(token: str, session: "SessionLock") -> None:
+        result = session.exec(
+            select(PasswordReset).where(PasswordReset.token == token)
+        ).first()
+        if result is None:
+            raise HTTPException(status_code=404, detail="error.invalid_reset_token")
+
+        if result.expires_at < datetime.datetime.now():
+            raise HTTPException(status_code=400, detail="error.expired_reset_token")
+
+        if result.used:
+            raise HTTPException(status_code=400, detail="error.used_reset_token")
+        return
+
+    @staticmethod
+    def use_token(token: str, password: str, session: "SessionLock") -> None:
+        # Get the reset request
+        reset: PasswordReset = session.exec(
+            select(PasswordReset).where(
+                PasswordReset.token == token,
+                not_(PasswordReset.used),
+                PasswordReset.expires_at > datetime.datetime.now(),
+            )
+        ).first()
+
+        # Check if the token is valid
+        if reset is None:
+            raise HTTPException(status_code=400, detail="error.invalid_token")
+        # Mark the token as used
+        reset.used = True
+        # Set the new password
+        reset.user.set_password(password)
+        # Commit to the database now to avoid any problems
+        session.commit()

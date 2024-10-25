@@ -27,7 +27,6 @@ const onSubmit = async () => {
     }
     authApi.login(email.value, password.value).then(
         () => {
-            console.log('Logged in');
             router.go(-1);
         }
     ).catch(

@@ -25,13 +25,21 @@ export default class ReservationApi {
         await api.put(`/res/${reservationId}/validate`);
     }
 
+    async reassign(reservationId: number, userId: number): Promise<void> {
+        await api.put(`/res/${reservationId}/reassign`, userId);
+    }
 
     async getReservations(userId: number): Promise<ReservedTimeRange[]> {
         const result = await api.get(`/res/${userId}/list_user`);
         return result.data;
     }
     async myReservations(): Promise<ReservedTimeRange[]> {
-        const result = await api.get(`/res/list_self`);
+        const result = await api.get(`/res/list_self_future`);
+        return result.data;
+    }
+
+    async search(search: { shop_id: number | undefined, year: number | undefined, week: number | undefined, user_id: number | undefined }): Promise<ReservedTimeRange[]> {
+        const result = await api.post(`/res/search`, search);
         return result.data;
     }
 }

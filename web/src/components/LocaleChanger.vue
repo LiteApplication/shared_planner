@@ -12,11 +12,9 @@ const i18n = useI18n();
 
 // Get the preferred language from the store
 if (localStorage.getItem('locale') === null) {
-    console.log('Setting locale');
 
     const browserLanguage = navigator.language.split('-')[0];
 
-    console.log(browserLanguage);
     if (Object.keys(languages).includes(browserLanguage)) {
         localStorage.setItem('locale', browserLanguage);
     } else {
@@ -28,7 +26,6 @@ if (localStorage.getItem('locale') === null) {
 
 // Set the locale
 const locale = localStorage.getItem('locale');
-console.log("Locale is", locale);
 
 if (locale) {
     i18n.locale.value = locale;

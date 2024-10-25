@@ -1,4 +1,4 @@
-import { api } from ".";
+import { api, cachedGet } from ".";
 import type { Setting } from "./types";
 
 export default class SettingsApi {
@@ -10,8 +10,7 @@ export default class SettingsApi {
     }
 
     async get(key: string): Promise<Setting> {
-        const result = await api.get(`/settings/${key}`);
-        return result.data;
+        return await cachedGet(`/settings/${key}`);
     }
 
     async update(key: string, value: string): Promise<Setting> {

@@ -7,19 +7,22 @@ import { authApi, notificationsApi } from '@/main';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import LocaleChanger from './LocaleChanger.vue';
+import handleError from '@/error_handler';
+import { useToast } from 'primevue/usetoast';
 
 const $t = useI18n().t;
 const router = useRouter();
+const toast = useToast();
 
 const logout = () => {
     authApi.logout();
-    router.push('/login');
+    router.push({ name: "login" });
 };
 
 
 const notificationModel = defineModel('notificationCount');
 
-const props = defineProps({
+defineProps({
     isAdmin: Boolean
 })
 
@@ -30,30 +33,23 @@ onMounted(() => {
         (r) => {
             notificationModel.value = r;
         }
-    ).catch(
-        (e) => {
-            console.error("Failed to fetch notification count", e);
-        }
-    );
+    ).catch(handleError(toast, $t, "error.notification.unknown"));
 });
 
 const items = ref<any>([
     {
         label: $t("menu.my_reservations"),
         icon: PrimeIcons.CALENDAR,
-        route: "/reservations"
+        route: "/"
     },
     {
         label: $t("menu.create_reservation"),
         icon: PrimeIcons.PLUS,
         route: "/shops"
-    }
-]);
-
-const adminItems = ref(
-    {
+    }, {
         label: $t("menu.admin.title"),
         icon: PrimeIcons.COG,
+        adminRequired: true,
         items: [
             {
                 label: $t("menu.admin.users"),
@@ -76,11 +72,7 @@ const adminItems = ref(
                 route: "/admin/settings"
             }
         ]
-    }
-);
-if (props.isAdmin)
-    items.value.push(adminItems);
-
+    }]);
 
 </script>
 
@@ -90,23 +82,25 @@ if (props.isAdmin)
             <img src="../assets/logo.png" alt="Logo" class="p-mr-2 h-12" />
         </template>
         <template #item="{ item, props, hasSubmenu }">
-            <router-link v-if="item.route" v-slot="{ href, navigate }" :to="item.route" custom>
-                <a v-ripple :href="href" v-bind="props.action" @click="navigate">
+            <div v-if="!item.adminRequired || isAdmin">
+                <router-link v-if="item.route" v-slot="{ href, navigate }" :to="item.route" custom>
+                    <a v-ripple :href="href" v-bind="props.action" @click="navigate">
+                        <span :class="item.icon" />
+                        <span class="ml-1">{{ item.label }}</span>
+                    </a>
+                </router-link>
+                <a v-else v-ripple :href="item.url" :target="item.target" v-bind="props.action">
                     <span :class="item.icon" />
                     <span class="ml-1">{{ item.label }}</span>
+                    <span v-if="hasSubmenu" class="pi pi-fw pi-angle-down" />
                 </a>
-            </router-link>
-            <a v-else v-ripple :href="item.url" :target="item.target" v-bind="props.action">
-                <span :class="item.icon" />
-                <span class="ml-1">{{ item.label }}</span>
-                <span v-if="hasSubmenu" class="pi pi-fw pi-angle-down" />
-            </a>
+            </div>
         </template>
         <!-- Logout button at the end -->
         <template #end>
             <div class="flex items-center gap-2">
                 <Button :icon="PrimeIcons.BELL" :severity="notificationModel == 0 ? 'secondary' : 'info'" :text="notificationModel == 0"
-                    :badge="notificationModel ? notificationModel.toString() : null" @click="router.push('/notifications')" />
+                    :badge="notificationModel ? notificationModel.toString() : null" @click="router.push({ name: 'notifications' })" />
                 <LocaleChanger />
                 <Button :label="$t('message.logout')" rounded icon="pi pi-sign-out" @click="logout" severity="danger" outlined />
             </div>

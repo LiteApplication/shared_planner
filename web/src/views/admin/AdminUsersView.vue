@@ -1,5 +1,5 @@
 <template>
-    <EnsureLoggedIn :require-admin="true" />
+    <EnsureLoggedIn require-admin />
     <DataTable :value="users" dataKey="id" tableStyle="min-width: 60rem" size="large" stripedRows sort-field="group" :sort-order="1" removableSort
         :globalFilterFields="['full_name', 'email', 'group']" filterDisplay="row" v-model:filters="filters" editMode="row" @row-edit-save="saveRow"
         v-model:editingRows="editingRows" @row-edit-init="onRowEditInit" @row-edit-cancel="editingRows = []" v-model:selection="selectedUsers">
@@ -52,7 +52,7 @@
                 <ToggleSwitch v-model="editField_admin" />
             </template>
         </Column>
-        <Column :rowEditor="true" style="width: 10%; min-width: 8rem" bodyStyle="text-align:center"></Column>
+        <Column row-editor style="width: 10%; min-width: 8rem" bodyStyle="text-align:center"></Column>
     </DataTable>
 </template>
 
@@ -72,6 +72,7 @@ import { usersApi } from '@/main';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import Toolbar from 'primevue/toolbar';
+import handleError from '@/error_handler';
 
 const toast = useToast();
 const $t = useI18n().t;
@@ -106,7 +107,7 @@ function loadList() {
         (r) => {
             users.value = r;
         }
-    )
+    ).catch(handleError(toast, $t));
 }
 
 const saveRow = (e: any) => {
@@ -117,18 +118,7 @@ const saveRow = (e: any) => {
         email: editField_email.value,
         group: editField_group.value,
         admin: editField_admin.value,
-    }).then(loadList).catch( // optimistic update
-        (e) => {
-            if (e.stack) e.stack = undefined;
-            console.error(e);
-            if (e.response?.data?.detail) {
-                toast.add({ severity: 'error', summary: $t("error.title"), detail: $t(e.response?.data?.detail) });
-            } else {
-                toast.add({ severity: 'error', summary: $t("error.title"), detail: $t("error.unknown") });
-            }
-            loadList(); // rollback
-        }
-    );
+    }).then(loadList).catch(handleError(toast, $t));
     users.value = users.value.map(
         (u) => {
             if (u.id == e.data.id) {
@@ -151,15 +141,7 @@ const selectedUsers = ref<User[]>([]);
 onMounted(loadList);
 
 function addUser() {
-    usersApi.create('', 'New User', '', '', false).then(loadList).catch(
-        (e) => {
-            if (e.response?.data?.detail) {
-                toast.add({ severity: 'error', summary: $t("error.title"), detail: $t(e.response?.data?.detail) });
-            } else {
-                toast.add({ severity: 'error', summary: $t("error.title"), detail: $t("error.unknown") });
-            }
-        }
-    );
+    usersApi.create('', 'New User', '', '', false).then(loadList).catch(handleError(toast, $t));
 }
 
 // Function to confirm and delete selected users
@@ -171,14 +153,7 @@ const confirmDeleteSelectedUsers = () => {
                 toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.user_deleted") });
                 loadList();
             }
-        ).catch(e => {
-            console.error(e);
-            if (e.response?.data?.detail) {
-                toast.add({ severity: 'error', summary: $t("error.title"), detail: $t(e.response?.data?.detail) });
-            } else {
-                toast.add({ severity: 'error', summary: $t("error.title"), detail: $t("error.unknown") });
-            }
-        });
+        ).catch(handleError(toast, $t));
 
     }
 };

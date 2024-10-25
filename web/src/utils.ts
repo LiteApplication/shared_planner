@@ -43,6 +43,12 @@ function DateToMinutes(date: Date): number {
 function getDateOfWeek(y: number, w: number) {
     const date = new Date(y, 0, (1 + (w - 1) * 7)); // Elle's method
     date.setDate(date.getDate() + (1 - date.getDay())); // 0 - Sunday, 1 - Monday etc
+    // Set the date to Thursday, Wednesday if it is a leap year
+    date.setDate(date.getDate() + 2);
+    if ((0 == date.getFullYear() % 4) && (0 != date.getFullYear() % 100) || (0 == date.getFullYear() % 400)) {
+        date.setDate(date.getDate() - 1);
+    }
+
     return date
 }
 
@@ -63,10 +69,11 @@ function networkDateTime(date: Date) {
         date = new Date(0);
     }
     // get local timezone offset
+    const date_copy = new Date(date);
     const offset = date.getTimezoneOffset();
-    date.setMinutes(date.getMinutes() - offset);
+    date_copy.setMinutes(date.getMinutes() - offset);
 
-    return date.toISOString().slice(0, 19);
+    return date_copy.toISOString().slice(0, 19);
 }
 
 function networkDate(date: Date) {
@@ -81,17 +88,16 @@ function networkDate(date: Date) {
 }
 
 function date_start_end(start: string, duration_minutes: number, locale: string): { date: string, start: string, end: string } {
-    const d = new Date(start);
     return {
-        date: d.toLocaleDateString(locale),
+        date: formatDate(start, locale),
         start: start.slice(11, 16),
         end: minutesToTime(timeToMinutes(start.slice(11, 16)) + duration_minutes)
     }
 }
 
-function validateDates(shopData: ShopWithOpenRange | Shop | null | undefined, startTime: Date, endTime: Date, setError: (a: string | null) => void, day: number, week: number, year: number, $t: ComposerTranslation): boolean {
+function validateDates(shopData: ShopWithOpenRange | Shop | null | undefined, startTime: Date, endTime: Date, setError: (a: string | null) => void, day: number, week: number, year: number): boolean {
     if (!shopData) {
-        setError($t('error.shop.not_loaded'));
+        setError('error.shop.not_loaded');
         return false;
     }
 
@@ -105,12 +111,13 @@ function validateDates(shopData: ShopWithOpenRange | Shop | null | undefined, st
         const open_ranges = shopData?.open_ranges.filter(
             (range: OpenRange) => {
                 const rangeDay = getDateOfWeekDay(year, week, range.day).getTime();
-                return range.day === day && rangeDay >= shopStart && rangeDay <= shopEnd;
+                const rangeDayPlusOne = getDateOfWeekDay(year, week, range.day + 1).getTime();
+                return range.day === day && rangeDayPlusOne >= shopStart && rangeDay <= shopEnd;
             }
         );
 
         if (!open_ranges.length) {
-            setError($t('error.reservation.not_open_day'));
+            setError('error.reservation.not_open_day');
             return false;
         }
 
@@ -124,7 +131,7 @@ function validateDates(shopData: ShopWithOpenRange | Shop | null | undefined, st
                 return task_time >= start_time && task_time < end_time && task_time_end <= end_time;
             }
         )) {
-            setError($t('error.reservation.not_open_time'));
+            setError('error.reservation.not_open_time');
             return false;
         }
     }
@@ -132,18 +139,19 @@ function validateDates(shopData: ShopWithOpenRange | Shop | null | undefined, st
     const timeDiffMinutes = DateToMinutes(endTime) - DateToMinutes(startTime);
 
     if (timeDiffMinutes < 0) {
-        setError($t('error.reservation.end_before_start'));
+        setError('error.reservation.end_before_start');
+
         return false;
     }
 
 
     if (timeDiffMinutes < shopData.min_time) {
-        setError($t('error.reservation.too_short', { min_time: shopData.min_time }));
+        setError('error.reservation.too_short');
         return false;
     }
 
     if (timeDiffMinutes > shopData.max_time) {
-        setError($t('error.reservation.too_long', { max_time: shopData.max_time }));
+        setError('error.reservation.too_long');
         return false;
     }
 
@@ -151,12 +159,20 @@ function validateDates(shopData: ShopWithOpenRange | Shop | null | undefined, st
     return true;
 }
 
-function formatDate(date: string): string {
+function formatDate(date: string, locale: string): string {
+    const d = new Date(date);
+    const options: Intl.DateTimeFormatOptions = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    };
 
-    return date.slice(0, 10);
+    return d.toLocaleDateString(locale, options)
 }
 
 function DateToWeekNumber(date: Date): number {
+    // Get the week number for the date
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
     const dayNum = d.getUTCDay() || 7;
     d.setUTCDate(d.getUTCDate() + 4 - dayNum);

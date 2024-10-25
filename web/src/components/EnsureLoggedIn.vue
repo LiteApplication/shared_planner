@@ -1,6 +1,6 @@
 <template>
     <LoadingScreen :visible="loadingModel || additionalLoading" />
-    <MainMenu :is-admin="userModel && userModel.admin" v-model:notification-count="notificationCount" />
+    <MainMenu :is-admin="isAdmin" v-model:notification-count="notificationCount" />
 </template>
 
 <script setup lang="ts">
@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n';
 import { authApi } from '@/main';
 import { useToast } from 'primevue/usetoast';
 import { useRouter } from 'vue-router';
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import LoadingScreen from './LoadingScreen.vue';
 import { defineComponent } from 'vue';
 import { loadUserFromSession, saveUserToSession } from '@/api';
@@ -18,6 +18,8 @@ import MainMenu from './MainMenu.vue';
 const toast = useToast();
 const $router = useRouter();
 const $t = useI18n().t;
+
+const isAdmin = ref(false);
 
 
 const userModel = defineModel("user", {
@@ -54,18 +56,19 @@ async function fetchData() {
             console.log("Logged in as", user);
             if (props.requireAdmin && !user.admin) {
                 toast.add({ severity: 'error', summary: $t('error.title'), detail: $t('admin.unauthorized') });
-                $router.push('/login');
+                $router.push({ name: "reservations" });
                 return;
             }
             saveUserToSession(user);
             userModel.value = user;
             loadingModel.value = false;
+            isAdmin.value = user.admin;
         },
         error => {
             if (error.response && error.response.status === 401) {
-                $router.push('/login');
+                $router.push({ name: "login" });
             } else {
-                handleError(toast, $t, "error.unknown")(error);
+                handleError(toast, $t)(error);
             }
             loadingModel.value = false;
 

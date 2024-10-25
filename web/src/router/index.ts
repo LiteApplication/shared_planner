@@ -1,14 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    {
-      path: '/',
-      name: 'home',
-      component: HomeView
-    },
     {
       path: '/login',
       name: 'login',
@@ -25,7 +19,7 @@ const router = createRouter({
       component: () => import('../views/NotificationsView.vue')
     },
     {
-      path: '/reservations',
+      path: '/',
       name: 'reservations',
       component: () => import('../views/ReservationsView.vue')
     },
@@ -35,7 +29,7 @@ const router = createRouter({
       component: () => import('../views/ShopsView.vue')
     },
     {
-      path: '/shops/:id',
+      path: '/shops/:id/:year/:week',
       name: 'shop',
       component: () => import('../views/ShopView.vue')
     },
@@ -52,7 +46,7 @@ const router = createRouter({
     {
       path: "/admin/reservations",
       name: "admin-reservations",
-      component: () => import('../views/admin/AdminShopsView.vue')
+      component: () => import('../views/admin/AdminReservationsView.vue')
     },
     {
       path: "/admin/settings",

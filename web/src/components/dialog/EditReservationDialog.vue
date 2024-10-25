@@ -4,12 +4,12 @@
         <div class="flex flex-col gap-6 mb-8">
             <FloatLabel>
                 <DatePicker v-model="dialogTimeStart" time-only fluid input-id="start_time"
-                    :invalid="!validateDates(shopData, dialogTimeStart, dialogTimeEnd, setError, dayOfWeek, week, year, $t)" />
+                    :invalid="!validateDates(shopData, dialogTimeStart, dialogTimeEnd, setError, dayOfWeek, week, year)" :stepMinute="30" />
                 <label for="start_time">{{ $t('message.reservation.start_time') }}</label>
             </FloatLabel>
             <FloatLabel>
-                <DatePicker v-model="dialogTimeEnd" time-only fluid input-id="end_time"
-                    :invalid="!validateDates(shopData, dialogTimeStart, dialogTimeEnd, setError, dayOfWeek, week, year, $t)" />
+                <DatePicker v-model="dialogTimeEnd" time-only fluid input-id="end_time" :stepMinute="30"
+                    :invalid="!validateDates(shopData, dialogTimeStart, dialogTimeEnd, setError, dayOfWeek, week, year)" />
 
                 <label for="end_time">{{ $t('message.reservation.end_time') }}</label>
             </FloatLabel>
@@ -41,6 +41,7 @@ import Message from 'primevue/message';
 import { useToast } from 'primevue/usetoast';
 import { computed, defineComponent, ref, watch, type PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
+import handleError from '@/error_handler';
 
 const $t = useI18n().t;
 const toast = useToast();
@@ -108,20 +109,10 @@ function onTaskDelete() {
     reservationApi.cancel(props.task?.id!).then(() => {
         emit('update:task');
         editVisible.value = false;
-    }).catch(
-        (error) => {
-            if (error.response?.data) {
-                toast.add({
-                    severity: 'error', summary: $t('error.title'), detail: $t(error.response?.data.detail, {
-                        min_time: props.shopData?.min_time,
-                        max_time: props.shopData?.max_time
-                    })
-                });
-            } else {
-                toast.add({ severity: 'error', summary: $t('error.title'), detail: $t('error.reservation.unknown') });
-            }
-        }
-    );
+    }).catch(handleError(toast, $t, "error.reservation.unknown", {
+        min_time: props.shopData?.min_time,
+        max_time: props.shopData?.max_time
+    }));
 }
 
 
@@ -146,20 +137,10 @@ function onTaskSave() {
             emit('update:task');
             editVisible.value = false;
         }
-    ).catch(
-        (error) => {
-            if (error.response?.data) {
-                toast.add({
-                    severity: 'error', summary: $t('error.title'), detail: $t(error.response?.data.detail, {
-                        min_time: props.shopData?.min_time,
-                        max_time: props.shopData?.max_time
-                    })
-                });
-            } else {
-                toast.add({ severity: 'error', summary: $t('error.title'), detail: $t('error.reservation.unknown') });
-            }
-        }
-    );
+    ).catch(handleError(toast, $t, "error.reservation.unknown", {
+        min_time: props.shopData?.min_time,
+        max_time: props.shopData?.max_time
+    }));
 
 }
 

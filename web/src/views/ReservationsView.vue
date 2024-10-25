@@ -11,6 +11,7 @@ import { exampleReservedTimeRange, type ReservedTimeRange } from '@/api/types';
 import { reservationApi } from '@/main';
 import Button from 'primevue/button';
 import { PrimeIcons } from '@primevue/core/api';
+import handleError from '@/error_handler';
 
 const $router = useRouter();
 const toast = useToast();
@@ -24,11 +25,20 @@ const reservations: Ref<ReservedTimeRange[]> = ref([
 ]);
 
 
-function updateReservations() {
+function updateReservations(item: undefined | null | ReservedTimeRange = undefined, index: number | undefined = undefined) {
+    // Optimistic update
+    if (item != undefined && index != undefined) {
+        if (item == null) {
+            reservations.value.splice(index, 1);
+        } else
+            reservations.value[index] = item;
+    }
     reservationApi.myReservations().then(
-        (r) => { reservations.value = r }
-    )
+        (r) => { reservations.value = r } // Then we update the list with the real data
+    ).catch(handleError(toast, $t, "error.reservation.unknown"));
 }
+
+
 
 onMounted(() => {
     updateReservations();
@@ -42,12 +52,13 @@ onMounted(() => {
     <EnsureLoggedIn />
     <div v-if="reservations.length != 0">
         <ReservationItem v-for="(reservation, index) in reservations" :key="reservation.id === -1 ? index : reservation.id" :reservation="reservation"
-            @update:reservation="updateReservations()" />
+            @update:reservation="updateReservations" />
     </div>
     <div v-else class="flex flex-col items-center">
         <h2 class="m-4 text-center text-xl">{{ $t("message.empty_list") }}</h2>
         <p>{{ $t("message.reservation.new_reservation_explanation") }}</p>
-        <Button class="m-4" :label="$t('message.reservation.new_reservation_button')" @click="$router.push('/shops')" :icon="PrimeIcons.PLUS" />
+        <Button class="m-4" :label="$t('message.reservation.new_reservation_button')" @click="$router.push({ name: 'shops' })"
+            :icon="PrimeIcons.PLUS" />
     </div>
 </template>
 

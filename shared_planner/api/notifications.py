@@ -24,7 +24,11 @@ def list_notifications(user: User = Depends(CurrentUser)) -> list[Notification]:
         if user is None:
             raise HTTPException(404, "error.auth.user_not_found")
 
-        notifications = user.notifications
+        if not user.admin:
+            notifications = user.notifications
+        else:
+            # A bit more expensive, but we need to get the admin notifications too
+            notifications = Notification.list_notifications(user, session)
     return notifications
 
 

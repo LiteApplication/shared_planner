@@ -26,7 +26,7 @@ onMounted(() => {
         (r) => {
             notifications.value = sorted(r);
         }
-    )
+    ).catch(handleError(toast, $t, "error.notification.unknown"));
 });
 
 
@@ -103,7 +103,7 @@ export default defineComponent({
 
 
     <Button :label="$t('notification.mark_all_as_read')" @click="markAsReadAll" :disabled="notifCount == 0"
-        :severity="notifCount == 0 ? 'secondary' : 'info'" class="ml-4" :icon="PrimeIcons.CHECK_SQUARE" />
+        :severity="notifCount == 0 ? 'secondary' : 'info'" class="ml-4 mb-4" :icon="PrimeIcons.CHECK_SQUARE" />
     <Timeline :value="notifications">
         <template #opposite="{ item }">
             <div class="text-surface-500 dark:text-surface-400">{{ (new Date(item.date)).toDateString() }}</div>

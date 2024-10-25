@@ -1060,6 +1060,20 @@ export default {
             this.$emit('date-select', date);
         },
         updateModel(value) {
+            if (this.dateFormat !== null && this.dateFormat.includes("W")) {
+                // Set date to thursday of the week (or wednesday on leap years)
+                const date = new Date(value.getTime());
+                const day = date.getDay();
+                date.setDate(date.getDate() + 4 - day);
+
+                if ((0 == date.getFullYear() % 4) && (0 != date.getFullYear() % 100) || (0 == date.getFullYear() % 400)) {
+                    date.setDate(date.getDate() - 1);
+                }
+
+                value.setFullYear(date.getFullYear());
+                value.setMonth(date.getMonth());
+                value.setDate(date.getDate());
+            }
             this.$emit('update:modelValue', value);
         },
         shouldSelectDate() {
@@ -1540,6 +1554,9 @@ export default {
         },
         updateCurrentMetaData() {
             const viewDate = this.viewDate;
+
+
+
 
             this.currentMonth = viewDate.getMonth();
             this.currentYear = viewDate.getFullYear();

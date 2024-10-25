@@ -4,13 +4,13 @@
         <div class="flex flex-col gap-6 mb-8">
             <FloatLabel>
                 <DatePicker v-model="dialogTimeStart" fluid input-id="start_time" showTime hourFormat="24" date-format="dd-mm-yy"
-                    :invalid="!validateDates(shopData, dialogTimeStart, dialogTimeEnd, setError, dayOfWeek, week, year, $t)" />
+                    :invalid="!validateDates(shopData, dialogTimeStart, dialogTimeEnd, setError, dayOfWeek, week, year)" :stepMinute="30" />
 
                 <label for="start_time">{{ $t('message.reservation.start_time') }}</label>
             </FloatLabel>
             <FloatLabel>
                 <DatePicker v-model="dialogTimeEnd" time-only fluid input-id="end_time"
-                    :invalid="!validateDates(shopData, dialogTimeStart, dialogTimeEnd, setError, dayOfWeek, week, year, $t)" />
+                    :invalid="!validateDates(shopData, dialogTimeStart, dialogTimeEnd, setError, dayOfWeek, week, year)" :stepMinute="30" />
 
                 <label for="end_time">{{ $t('message.reservation.end_time') }}</label>
             </FloatLabel>

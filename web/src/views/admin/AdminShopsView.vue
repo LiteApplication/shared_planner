@@ -1,5 +1,5 @@
 <template>
-    <EnsureLoggedIn :require-admin="true" :additional-loading="loading" />
+    <EnsureLoggedIn require-admin :additional-loading="loading" />
     <Toolbar class="mx-4">
         <template #start>
             <Select v-model="selectedShopInList" :options="shops" optionLabel="name" @change="loadShopDetails" checkmark class="m-1" showClear />
@@ -95,7 +95,7 @@
                                 <InputMask v-model="data.end_time" mask="99:99" placeholder="HH:MM" :invalid="!validTime(data.end_time)" />
                             </template>
                         </Column>
-                        <Column :rowEditor="true" style="width: 10%; min-width: 8rem" bodyStyle="text-align:center"></Column>
+                        <Column rowEditor style="width: 10%; min-width: 8rem" bodyStyle="text-align:center"></Column>
                         <Column style="width: 10%; min-width: 4rem">
                             <template #body="{ data }">
                                 <Button icon="pi pi-trash" class="p-button-rounded p-button-danger p-button-text" @click="deleteOpenRange(data.id)" />
@@ -128,6 +128,7 @@ import Panel from 'primevue/panel';
 import Toolbar from 'primevue/toolbar';
 import { networkDate, networkDateTime } from '@/utils';
 import InputMask from 'primevue/inputmask';
+import handleError from '@/error_handler';
 const toast = useToast();
 const $t = useI18n().t;
 
@@ -156,7 +157,7 @@ function loadList() {
             selectedShopInList.value = r[shops.value.length - 1];
             loadShopDetails();
         }
-    )
+    ).catch(handleError(toast, $t, "error.shop.unknown")).finally(() => loading.value = false);
 }
 
 function loadShopDetails() {
@@ -170,19 +171,10 @@ function loadShopDetails() {
                 r.open_ranges = r.open_ranges.map((o) => ({ ...o, start_time: o.start_time.substring(0, 5), end_time: o.end_time.substring(0, 5) }));
                 selectedShop.value = r;
 
-                console.log(r.available_from, r.available_until);
                 loading.value = false;
 
             }
-        ).catch(
-            (e) => {
-                if (e.response?.data?.detail) {
-                    toast.add({ severity: 'error', summary: $t("error.title"), detail: $t(e.response?.data?.detail) });
-                } else {
-                    toast.add({ severity: 'error', summary: $t("error.title"), detail: $t("error.unknown") });
-                }
-            }
-        );
+        ).catch(handleError(toast, $t, "error.shop.unknown"));
     } else {
         selectedShop.value = null;
     }
@@ -211,15 +203,8 @@ function onOpenRangeSave(event: { newData: OpenRange, data: OpenRange, index: nu
                 selectedShop.value = r;
                 toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.shop.or_added") });
             }
-        ).catch(
-            (e) => {
-                loadShopDetails();
-                if (e.response?.data?.detail) {
-                    toast.add({ severity: 'error', summary: $t("error.title"), detail: $t(e.response?.data?.detail) });
-                } else {
-                    toast.add({ severity: 'error', summary: $t("error.title"), detail: $t("error.unknown") });
-                }
-            }
+        ).catch(handleError(toast, $t)).finally(
+            loadShopDetails
         );
     } else {
         shopApi.updateOpenRange(newData).then(
@@ -227,15 +212,8 @@ function onOpenRangeSave(event: { newData: OpenRange, data: OpenRange, index: nu
                 selectedShop.value = r;
                 toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.shop.or_updated") });
             }
-        ).catch(
-            (e) => {
-                loadShopDetails();
-                if (e.response?.data?.detail) {
-                    toast.add({ severity: 'error', summary: $t("error.title"), detail: $t(e.response?.data?.detail) });
-                } else {
-                    toast.add({ severity: 'error', summary: $t("error.title"), detail: $t("error.unknown") });
-                }
-            }
+        ).catch(handleError(toast, $t)).finally(
+            loadShopDetails
         );
     }
 }
@@ -245,16 +223,7 @@ function deleteOpenRange(id: number) {
         () => {
             toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.shop.or_deleted") });
         }
-    ).catch(
-        (e) => {
-            loadShopDetails();
-            if (e.response?.data?.detail) {
-                toast.add({ severity: 'error', summary: $t("error.title"), detail: $t(e.response?.data?.detail) });
-            } else {
-                toast.add({ severity: 'error', summary: $t("error.title"), detail: $t("error.unknown") });
-            }
-        }
-    );
+    ).catch(handleError(toast, $t));
 
     selectedShop.value!.open_ranges = selectedShop.value!.open_ranges.filter((o) => o.id !== id);
 
@@ -274,19 +243,7 @@ function saveShop() {
                 selectedShopInList.value = r;
                 toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.shop.created") });
             }
-        ).catch(
-            (e: any) => {
-                e.stack = undefined;
-                console.error(e);
-
-                if (e.response && e.response?.data?.detail) {
-                    // Check if detail is a string
-                    toast.add({ severity: 'error', summary: $t("error.title"), detail: $t(e.response?.data?.detail) });
-                } else {
-                    toast.add({ severity: 'error', summary: $t("error.title"), detail: $t("error.unknown") });
-                }
-            }
-        );
+        ).catch(handleError(toast, $t));
         return;
     }
 
@@ -295,19 +252,7 @@ function saveShop() {
             loadShopDetails();
             toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.shop.updated") });
         }
-    ).catch(
-        (e: any) => {
-            e.stack = undefined;
-            console.error(e);
-
-            if (e.response && e.response?.data?.detail) {
-                // Check if detail is a string
-                toast.add({ severity: 'error', summary: $t("error.title"), detail: $t(e.response?.data?.detail) });
-            } else {
-                toast.add({ severity: 'error', summary: $t("error.title"), detail: $t("error.unknown") });
-            }
-        }
-    );
+    ).catch(handleError(toast, $t));
 
 
 }
@@ -324,19 +269,7 @@ function onDeleteShop() {
             loadList();
             toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.shop.deleted") });
         }
-    ).catch(
-        (e: any) => {
-            e.stack = undefined;
-            console.error(e);
-
-            if (e.response && e.response?.data?.detail) {
-                // Check if detail is a string
-                toast.add({ severity: 'error', summary: $t("error.title"), detail: $t(e.response?.data?.detail) });
-            } else {
-                toast.add({ severity: 'error', summary: $t("error.title"), detail: $t("error.unknown") });
-            }
-        }
-    );
+    ).catch(handleError(toast, $t));
 
     selectedShop.value = null;
     shops.value = shops.value.filter((s) => s.id !== selectedShopInList.value!.id);

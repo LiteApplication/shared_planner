@@ -8,6 +8,7 @@ from sqlmodel import select
 
 from shared_planner.db.models import Notification, Token, User
 from shared_planner.db.session import SessionLock
+from shared_planner.db.settings import get
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -87,7 +88,9 @@ def login(
             raise HTTPException(status_code=401, detail="error.auth.invalid_password")
 
         token = Token.create_token(user)
-        session.add(Notification.create(user, "notification.login"))
+        if get("notif_login").asBool():
+            session.add(Notification.create(user, "notification.login"))
+
         session.add(token)
         session.commit()
         session.refresh(token)
@@ -123,6 +126,32 @@ def register(
 
         token = Token.create_token(new_user)
         session.add(token)
+
+        if get("notif_new_user_created").asBool():
+            session.add(
+                Notification.create(
+                    None,
+                    "notification.new_user",
+                    data={
+                        "full_name": full_name,
+                        "email": email,
+                        "group": group,
+                    },
+                    route="/admin/users",
+                )
+            )
+        if get("notif_new_user_created").asBool():
+            session.add(
+                Notification.create(
+                    None,
+                    "notification.new_user",
+                    data={
+                        "full_name": full_name,
+                        "email": email,
+                    },
+                    route="/shops",
+                )
+            )
 
         session.commit()
         session.refresh(token)

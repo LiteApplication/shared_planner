@@ -1,5 +1,5 @@
 <template>
-    <EnsureLoggedIn :require-admin="true" />
+    <EnsureLoggedIn require-admin />
     <DataTable :value="settings" dataKey="key" tableStyle="min-width: 60rem" size="large" stripedRows sort-field="group" :sort-order="1" removableSort
         :globalFilterFields="['key', 'value']" filterDisplay="row" v-model:filters="filters" editMode="row" @row-edit-save="saveRow"
         v-model:editingRows="editingRows" @row-edit-init="editingRows = [$event.data]" @row-edit-cancel="editingRows = []"
@@ -36,7 +36,7 @@
             </template>
         </Column>
         <Column expander style="width: 3rem" />
-        <Column :rowEditor="true" style="width: 8rem" bodyStyle="text-align:center"></Column>
+        <Column rowEditor style="width: 8rem" bodyStyle="text-align:center"></Column>
         <template #expansion="slotProps">
             <div class="p-4">
                 <p v-html="$t('admin.settings.description.' + slotProps.data.key)"></p>
@@ -60,6 +60,7 @@ import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import Toolbar from 'primevue/toolbar';
 import ToggleSwitch from 'primevue/toggleswitch';
+import handleError from '@/error_handler';
 
 const toast = useToast();
 const $t = useI18n().t;
@@ -81,19 +82,15 @@ function loadList() {
         (r) => {
             settings.value = r;
         }
-    )
+    ).catch(handleError(toast, $t));
 }
 
 const saveRow = (e: any) => {
-    console.log("old", e.data);
-    console.log("new", e.newData);
-    console.log("other", e);
-
     settingsApi.update(e.data.key, e.data.value).then(
         (new_setting) => {
             toast.add({ severity: 'success', summary: $t("admin.settings.saved_title"), detail: $t("admin.settings.saved_description", { key: new_setting.key }) });
         }
-    )
+    ).catch(handleError(toast, $t));
 };
 
 

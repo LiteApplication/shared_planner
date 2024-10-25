@@ -1,38 +1,35 @@
 <template>
-    <div class="bg-slate-200 dark:bg-slate-700 rounded-lg m-4 p-3">
-        <div class="flex justify-between items-center">
+    <Card style="width: 25rem; overflow: hidden" class="h-full">
+        <template #title>
+            <h2 class="text-xl font-semibold align-middle" v-if="shop.id != -1">{{ shop.name }}</h2>
+            <Skeleton width="10rem" height="1.5rem" v-else></Skeleton>
+        </template>
 
-            <div class="flex flex-col">
-                <div class="flex flex-row gap-2 items-center">
-                    <Button :icon="PrimeIcons.MAP_MARKER" severity=" info" rounded outlined aria-label="Bookmark" as="a" :href="shop.maps_link"
-                        target="_blank" v-if="shop.id != -1" />
-                    <Skeleton shape="circle" size="2rem" class="mr-2" v-else></Skeleton>
+        <template #subtitle>
+            <p class="text-xl font-normal" v-if="shop.id != -1"> {{ shop.location }}</p>
+            <Skeleton width=" 8rem" height="1rem" v-else></Skeleton>
+        </template>
+        <template #content>
+            <div class="">
 
-                    <h2 class="text-xl font-semibold align-middle" v-if="shop.id != -1">{{ shop.name }}</h2>
-                    <Skeleton width="10rem" height="1.5rem" v-else></Skeleton>
-                    -
-                    <p class="text-xl font-normal" v-if="shop.id != -1"> {{ shop.location }}</p>
-                    <Skeleton width=" 8rem" height="1rem" v-else></Skeleton>
-                </div>
-                <p class="text-s font-normal mt-2" v-if="shop.id != -1">
-                    {{ $t('message.shops.description', {
-                        from: formatDate(shop.available_from), until: formatDate(shop.available_until), volunteers:
-                            shop.volunteers
-                    }) }}
-                </p>
-                <Skeleton class="mt-2" width="25rem" height="1rem" v-else></Skeleton>
+                <p class="text-s font-normal mt-2" v-if="shop.id != -1" :innerHTML="$t('message.shops.description', {
+                    from: formatDate(shop.available_from, $t('date_locale')), until: formatDate(shop.available_until, $t('date_locale')), volunteers:
+                        shop.volunteers, description: shop.description
+                })"></p>
             </div>
-            <div>
-                <slot name="action">
-                    <Button outlined :icon="PrimeIcons.CALENDAR" class="p-1" :label="$t('message.shops.book')" v-if="shop.id != -1"
-                        @click="router.push({ name: 'shop', params: { id: shop.id } })" />
-                    <Skeleton height="2rem" width="5em" class="mr-2" v-else></Skeleton>
-                </slot>
+
+        </template>
+        <template #footer>
+            <div class="flex gap-4 mt-1">
+
+                <Button :icon="PrimeIcons.MAP_MARKER" severity="secondary" aria-label="Bookmark" as="a" :href="shop.maps_link" target="_blank"
+                    v-if="shop.id != -1" class="w-full" :label="$t('message.google_maps')" />
+                <Button :icon="PrimeIcons.CALENDAR" class="p-1 w-full" :label="$t('message.shops.book')" v-if="shop.id != -1"
+                    @click="router.push({ name: 'shop', params: { id: shop.id, year: (new Date()).getFullYear(), week: DateToWeekNumber(new Date()) } })" />
             </div>
-        </div>
-        <p v-if="shop.id != -1">{{ shop.description }}</p>
-        <Skeleton class="mt-2" width="50%" height="1rem" v-else></Skeleton>
-    </div>
+        </template>
+
+    </Card>
 </template>
 
 <script setup lang="ts">
@@ -42,8 +39,9 @@ import { defineComponent, type PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { PrimeIcons } from '@primevue/core/api';
 import Button from 'primevue/button';
-import { formatDate } from '@/utils';
+import { DateToWeekNumber, formatDate } from '@/utils';
 import { useRouter } from 'vue-router';
+import Card from 'primevue/card';
 
 defineProps({
     shop: {
@@ -63,7 +61,8 @@ export default defineComponent({
     components: {
         Skeleton,
         // eslint-disable-next-line vue/no-reserved-component-names
-        Button
+        Button,
+        Card
     }
 })
 

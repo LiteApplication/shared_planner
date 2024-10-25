@@ -9,6 +9,7 @@ import EnsureLoggedIn from '@/components/EnsureLoggedIn.vue';
 import ShopItem from '@/components/list/ShopItem.vue';
 import { exampleShop, type Shop } from '@/api/types';
 import { shopApi } from '@/main';
+import handleError from '@/error_handler';
 
 const $router = useRouter();
 const toast = useToast();
@@ -22,7 +23,7 @@ const shops: Ref<Shop[]> = ref([
 onMounted(() => {
     shopApi.list().then(
         (r) => { shops.value = r }
-    )
+    ).catch(handleError(toast, $t, "error.shop.unknown"));
 }
 )
 
@@ -32,7 +33,7 @@ onMounted(() => {
 <template>
     <EnsureLoggedIn />
     <h2 class="m-4 text-center text-xl">{{ $t("message.shops.select") }}</h2>
-    <div>
+    <div class="flex flex-wrap gap-4 justify-center w-full content-stretch">
         <ShopItem v-for="(shop, index) in shops" :key="shop.id === -1 ? index : shop.id" :shop="shop" />
     </div>
 </template>

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlmodel import select
 
 from shared_planner.api.auth import CurrentAdmin, CurrentToken, CurrentUser, UserResult
-from shared_planner.db.models import Token, User
+from shared_planner.db.models import PasswordReset, Token, User
 from shared_planner.db.session import SessionLock
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -40,6 +40,32 @@ def create_user(
         session.commit()
         session.refresh(new_user)
     return UserResult.from_user(new_user)
+
+
+@router.post("/request_password_reset")
+def reset_password(email: str) -> None:
+    """Reset a user's password"""
+    with SessionLock() as session:
+        statement = select(User).where(User.email == email)
+        user = session.exec(statement).first()
+        if user is None:
+            return  # Do not raise an error to prevent email enumeration
+        # Create a new password reset request
+        reset = PasswordReset.create(user, session)
+        session.add(reset)
+        session.commit()
+    return
+
+
+@router.post("/validate_token")
+def validate_token(token: str) -> False:
+    """Validate a password reset token"""
+    with SessionLock() as session:
+        result = PasswordReset.is_valid_token(token, session)
+        if not result:
+            raise HTTPException(status_code=400, detail="error.invalid_token")
+
+    return True
 
 
 @router.get("/list", dependencies=[Depends(CurrentAdmin)])
