@@ -9,18 +9,18 @@
             </FloatLabel>
             <FloatLabel v-if="showDate">
                 <DatePicker v-model="dateModel" fluid input-id="date" date-format="dd-mm-yy"
-                    :invalid="!validateDates(shopData, startDate, endDate, setError, dayOfWeek, week, year)" />
+                    :invalid="!validateDates(shopData, startDate, endDate, setError, dayOfWeek, monday)" />
                 <label for="date">{{ $t('message.reservation.date') }}</label>
             </FloatLabel>
             <FloatLabel v-if="showTime">
                 <DatePicker v-model="startTimeModel" time-only fluid input-id="start_time"
-                    :invalid="!validateDates(shopData, startDate, endDate, setError, dayOfWeek, week, year)" :step-minute="30" />
+                    :invalid="!validateDates(shopData, startDate, endDate, setError, dayOfWeek, monday)" :step-minute="30" />
 
                 <label for="start_time">{{ $t('message.reservation.start_time') }}</label>
             </FloatLabel>
             <FloatLabel v-if="showTime">
                 <DatePicker v-model="endTimeModel" time-only fluid input-id="end_time"
-                    :invalid="!validateDates(shopData, startDate, endDate, setError, dayOfWeek, week, year)" :step-minute="30" />
+                    :invalid="!validateDates(shopData, startDate, endDate, setError, dayOfWeek, monday)" :step-minute="30" />
 
                 <label for="end_time">{{ $t('message.reservation.end_time') }}</label>
             </FloatLabel>
@@ -43,7 +43,7 @@
 <script setup lang="ts">
 import type { Shop, ShopWithOpenRange, User } from '@/api/types';
 import { computed, ref, type PropType } from 'vue';
-import { DateToWeekNumber, getWeekDay, validateDates } from '@/utils';
+import { getMonday, getWeekDay, validateDates } from '@/utils';
 import { defineComponent } from 'vue';
 import Dialog from 'primevue/dialog';
 import FloatLabel from 'primevue/floatlabel';
@@ -154,11 +154,10 @@ const endDate = computed(() => {
 
 
 const dayOfWeek = computed(() => getWeekDay(dateModel.value));
-const week = computed(() => DateToWeekNumber(dateModel.value));
-const year = computed(() => dateModel.value.getFullYear());
+const monday = computed(() => getMonday(dateModel.value));
 
 function saveClicked() {
-    if (!validateDates(props.shopData, startDate.value, endDate.value, setError, dayOfWeek.value, week.value, year.value)) {
+    if (!validateDates(props.shopData, startDate.value, endDate.value, setError, dayOfWeek.value, monday.value)) {
         emit('save', startDate.value, endDate.value, selectedUserModel.value?.id ? selectedUserModel.value : null, validatedModel.value ? true : false);
         return;
     }

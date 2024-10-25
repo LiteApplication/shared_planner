@@ -10,6 +10,7 @@ from shared_planner.api.shops import ShopWithoutTimeRanges
 from shared_planner.db.models import Reservation, Shop, User, Token, Notification
 from shared_planner.db.session import SessionLock
 from shared_planner.db.settings import get
+from shared_planner.week import monday_str
 
 router = APIRouter(prefix="/res", tags=["reservations"])
 
@@ -70,13 +71,13 @@ class NewReservation(BaseModel):
     validated: bool = False
 
 
-@router.get("/{shop_id}/{year}/{week}/list")
+@router.get("/{shop_id}/{monday}/list")
 def get_planning(
-    shop_id: int, year: int, week: int, user: Annotated[User, Depends(CurrentUser)]
+    shop_id: int, monday: str, user: Annotated[User, Depends(CurrentUser)]
 ) -> list[list[ReservedTimeRange]]:
     """Get the planning of a shop for a specific week
 
-    week is the number of the week in the year, starting on Monday
+    A week is defined by the Monday of the week.
     The user is not allowed to see who booked a specific time range, but can see
     the number of available spaces. The user can see the time ranges they booked
     """
@@ -85,14 +86,14 @@ def get_planning(
         if shop is None:
             raise HTTPException(status_code=404, detail="error.shop.not_found")
 
-        if week < 0 or week > 52:
-            raise HTTPException(status_code=400, detail="error.shop.invalid_week")
+        # Ensure the day is a Monday
+        week_start = datetime.datetime.strptime(monday, "%Y-%m-%d")
+
+        if week_start.weekday() != 0:
+            raise HTTPException(status_code=400, detail="error.reservation.not_monday")
 
         # load the time ranges of the shop
         used_ranges = shop.reservations
-
-        # Get the start of the week
-        week_start = datetime.datetime.strptime(f"{year}-W{week}-1", "%Y-W%W-%w")
 
         # Create a list of time ranges per day
         time_ranges: list[ReservedTimeRange] = []
@@ -199,10 +200,7 @@ def book_time_range(
     duration_minutes: int = Body(),
     user: User = Depends(CurrentUser),
 ) -> ReservedTimeRange:
-    """Book a time range in a shop for a specific week
-
-    week is the number of the week in the year, starting on Monday
-    """
+    """Book a time range in a shop"""
     with SessionLock() as session:
         shop = session.get(Shop, shop_id)
         if shop is None:
@@ -228,8 +226,8 @@ def book_time_range(
                     "start_time": start_time.strftime("%Y-%m-%d %H:%M"),
                     "duration_minutes": duration.total_seconds() // 60,
                 },
-                route=f"/shops/{shop.id}/{start_time.year}/{start_time.isocalendar()[1]}",
-                is_reminder=False,
+                route=f"/shops/{shop.id}/{monday_str(start_time)}",
+                is_reminder=True,
                 mail=get("email_confirm_reservation").asBool(),
             )
         )
@@ -245,7 +243,7 @@ def book_time_range(
                         "start_time": start_time.strftime("%Y-%m-%d %H:%M"),
                         "duration": duration_minutes,
                     },
-                    route=f"/shops/{shop.id}/{start_time.year}/{start_time.isocalendar()[1]}",
+                    route=f"/shops/{shop.id}/{monday_str(start_time)}",
                     is_reminder=True,
                     mail=True,
                 )
@@ -311,7 +309,7 @@ def update_reservation(
                     ),
                     "previous_duration": previous_duration,
                 },
-                route=f"/shop/{reservation.shop.id}/{start_time.year}/{start_time.isocalendar()[1]}",
+                route=f"/shops/{reservation.shop.id}/{monday_str(start_time)}",
                 is_reminder=False,
                 mail=True,
             )
@@ -352,7 +350,7 @@ def cancel_reservation(
                     ).total_seconds()
                     // 60,
                 },
-                route=f"/shop/{reservation.shop.id}/{reservation.start_time.year}/{reservation.start_time.isocalendar()[1]}",
+                route=f"/shops/{reservation.shop.id}/{monday_str(reservation.start_time)}",
                 is_reminder=False,
                 mail=True,
             )
@@ -443,8 +441,7 @@ def get_user_future_reservations(
 def search(
     shop_id: int | None = Body(None),
     user_id: int | None = Body(None),
-    year: int | None = Body(None),
-    week: int | None = Body(None),
+    monday: str | None = Body(None),
 ) -> list[ReservedTimeRange]:
     """Search the database for reservations.
 
@@ -457,19 +454,8 @@ def search(
         if user_id is not None:
             query = query.where(Reservation.user_id == user_id)
             print(query)
-        if year is not None:
-            year_start = datetime.datetime(year, 1, 1)
-            year_end = datetime.datetime(year + 1, 1, 1)
-            query = query.where(
-                Reservation.start_time >= year_start, Reservation.start_time < year_end
-            )
-        if week is not None:
-            if year is None:
-                raise HTTPException(
-                    status_code=400, detail="error.reservation.year_required"
-                )
-
-            week_start = datetime.datetime.strptime(f"{year}-W{week}-1", "%Y-W%W-%w")
+        if monday is not None:
+            week_start = datetime.datetime.strptime(monday, "%Y-%m-%d")
             week_end = week_start + datetime.timedelta(days=7)
             query = query.where(
                 Reservation.start_time >= week_start, Reservation.start_time < week_end
@@ -518,7 +504,7 @@ def reassign_reservation(
                 ).total_seconds()
                 // 60,
             },
-            route=f"/shop/{reservation.shop.id}/{reservation.start_time.year}/{reservation.start_time.isocalendar()[1]}",
+            route=f"/shops/{reservation.shop.id}/{monday_str(reservation.start_time)}",
         )
 
         reservation.user_id = user.id

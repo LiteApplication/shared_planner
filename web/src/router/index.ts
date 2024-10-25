@@ -29,7 +29,7 @@ const router = createRouter({
       component: () => import('../views/ShopsView.vue')
     },
     {
-      path: '/shops/:id/:year/:week',
+      path: '/shops/:id/:week',
       name: 'shop',
       component: () => import('../views/ShopView.vue')
     },

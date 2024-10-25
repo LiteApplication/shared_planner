@@ -365,7 +365,14 @@ import OverlayEventBus from 'primevue/overlayeventbus';
 import Portal from 'primevue/portal';
 import Ripple from 'primevue/ripple';
 import BaseDatePicker from './BaseDatePicker.vue';
-import { DateToWeekNumber } from '@/utils';
+
+function DateToWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
 
 export default {
     name: 'DatePicker',
@@ -1064,11 +1071,8 @@ export default {
                 // Set date to thursday of the week (or wednesday on leap years)
                 const date = new Date(value.getTime());
                 const day = date.getDay();
-                date.setDate(date.getDate() + 4 - day);
+                date.setDate(date.getDate() - day + (day === 0 ? -6 : 1));
 
-                if ((0 == date.getFullYear() % 4) && (0 != date.getFullYear() % 100) || (0 == date.getFullYear() % 400)) {
-                    date.setDate(date.getDate() - 1);
-                }
 
                 value.setFullYear(date.getFullYear());
                 value.setMonth(date.getMonth());
@@ -1206,7 +1210,12 @@ export default {
                                 output += formatName('M', date.getMonth(), this.$primevue.config.locale.monthNamesShort, this.$primevue.config.locale.monthNames);
                                 break;
                             case 'y':
-                                output += lookAhead('y') ? date.getFullYear() : (date.getFullYear() % 100 < 10 ? '0' : '') + (date.getFullYear() % 100);
+                                if (this.dateFormat.includes("W")) {
+                                    const middle_week = new Date(date);
+                                    middle_week.setDate(middle_week.getDate() + 4 - (middle_week.getDay() || 7));
+                                    output += lookAhead('y') ? middle_week.getFullYear() : (middle_week.getFullYear() % 100 < 10 ? '0' : '') + (middle_week.getFullYear() % 100);
+                                } else
+                                    output += lookAhead('y') ? date.getFullYear() : (date.getFullYear() % 100 < 10 ? '0' : '') + (date.getFullYear() % 100);
                                 break;
                             case '@':
                                 output += date.getTime();

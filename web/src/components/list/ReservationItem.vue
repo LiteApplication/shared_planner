@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
 import { type ShopWithOpenRange, type ReservedTimeRange, type Shop, type User } from '@/api/types';
-import { date_start_end, DateToWeekNumber, networkDateTime } from '@/utils';
+import { date_start_end, getMonday, networkDateTime } from '@/utils';
 import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
 import { computed, defineComponent, onMounted, ref, type PropType } from 'vue';
@@ -101,8 +101,7 @@ function gotoReservation() {
     router.push({
         name: 'shop', params: {
             id: props.reservation.shop!.id,
-            year: new Date(props.reservation.start_time).getFullYear(),
-            week: DateToWeekNumber(new Date(props.reservation.start_time))
+            week: getMonday(props.reservation.start_time)
         }
     });
 }

@@ -4,7 +4,7 @@ import EnsureLoggedIn from '@/components/EnsureLoggedIn.vue';
 import ReservationItem from '@/components/list/ReservationItem.vue';
 import DatePicker from '@/components/primevue/DatePicker';
 import { reservationApi, shopApi, usersApi } from '@/main';
-import { DateToWeekNumber } from '@/utils';
+import { getMonday } from '@/utils';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
 import Toolbar from 'primevue/toolbar';
@@ -47,10 +47,9 @@ onMounted(() => {
 function search() {
     const shop_id = selectedShop.value ? selectedShop.value : undefined;
     const user_id = selectedUser.value ? selectedUser.value : undefined;
-    const year = datePicked.value ? datePicked.value.getFullYear() : undefined;
-    const week = datePicked.value ? DateToWeekNumber(datePicked.value) : undefined;
+    const week = datePicked.value ? getMonday(datePicked.value) : undefined;
 
-    reservationApi.search({ shop_id, user_id, year, week }).then((response) => {
+    reservationApi.search({ shop_id, user_id, monday: week }).then((response) => {
         reservations.value = response;
     }).catch(handleError(toast, $t, "error.reservation.unknown"));
 }

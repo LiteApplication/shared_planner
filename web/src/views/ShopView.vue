@@ -9,7 +9,7 @@ import EnsureLoggedIn from '@/components/EnsureLoggedIn.vue';
 import { exampleShopWithOpenRange, type ShopWithOpenRange } from '@/api/types';
 import { shopApi } from '@/main';
 import WeekViewer from '@/components/WeekViewer.vue';
-import { DateToWeekNumber, getDateOfWeek, maxDate } from '@/utils';
+import { getMonday, maxDate } from '@/utils';
 import DatePicker from '@/components/primevue/DatePicker';
 import handleError from '@/error_handler';
 import { useToast } from 'primevue/usetoast';
@@ -20,28 +20,26 @@ const $t = useI18n().t;
 const toast = useToast();
 
 const shopId = useRouteParams("id", "0", { transform: Number });
-const yearURL = useRouteParams("year", (new Date()).getFullYear(), { transform: Number });
-const weekNumberURL = useRouteParams("week", DateToWeekNumber(new Date()), { transform: Number });
+const weekNumberURL = useRouteParams("week", getMonday(new Date()), { transform: String });
 
 const isLoading = ref(true);
 
-const datePicked = ref(getDateOfWeek(yearURL.value, weekNumberURL.value));
+const datePicked = ref(new Date(weekNumberURL.value));
 const shop: Ref<ShopWithOpenRange> = ref(exampleShopWithOpenRange);
-const weekNumber = computed(() => DateToWeekNumber(datePicked.value));
-const year = computed(() => datePicked.value.getFullYear());
+const week = computed(() => getMonday(datePicked.value));
 
 onMounted(() => {
     shopApi.get(shopId.value).then(
         (r) => {
             shop.value = r;
-            datePicked.value = maxDate(new Date(shop.value.available_from), datePicked.value);
+            datePicked.value = new Date(getMonday(maxDate(new Date(shop.value.available_from), new Date(datePicked.value))));
         }
     ).catch(handleError(toast, $t, "error.shop.unknown")).finally(() => isLoading.value = false);
 }
 )
 
-watch([shopId, weekNumber, year], () => {
-    $router.push({ params: { id: shopId.value, year: year.value, week: weekNumber.value } });
+watch([shopId, week], () => {
+    $router.push({ params: { id: shopId.value, week: week.value } });
 }
 )
 
@@ -55,7 +53,7 @@ watch([shopId, weekNumber, year], () => {
                 :placeholder="$t('message.select_date')" show-week />
         </template>
     </ShopHeader>
-    <WeekViewer :shop-id="shop.id" :year="year" :week-number="weekNumber" v-if="shop.id != -1" v-model:loading="isLoading" />
+    <WeekViewer :shop-id="shop.id" :week="week" v-if="shop.id != -1" v-model:loading="isLoading" />
 </template>
 
 <script lang="ts">

@@ -25,7 +25,7 @@
                 <Button :icon="PrimeIcons.MAP_MARKER" severity="secondary" aria-label="Bookmark" as="a" :href="shop.maps_link" target="_blank"
                     v-if="shop.id != -1" class="w-full" :label="$t('message.google_maps')" />
                 <Button :icon="PrimeIcons.CALENDAR" class="p-1 w-full" :label="$t('message.shops.book')" v-if="shop.id != -1"
-                    @click="router.push({ name: 'shop', params: { id: shop.id, year: (new Date()).getFullYear(), week: DateToWeekNumber(new Date()) } })" />
+                    @click="router.push({ name: 'shop', params: { id: shop.id, week: getMonday(new Date()) } })" />
             </div>
         </template>
 
@@ -39,7 +39,7 @@ import { defineComponent, type PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { PrimeIcons } from '@primevue/core/api';
 import Button from 'primevue/button';
-import { DateToWeekNumber, formatDate } from '@/utils';
+import { getMonday, formatDate } from '@/utils';
 import { useRouter } from 'vue-router';
 import Card from 'primevue/card';
 

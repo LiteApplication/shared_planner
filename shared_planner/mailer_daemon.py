@@ -9,6 +9,7 @@ from email.mime.text import MIMEText
 from shared_planner.db.models import Setting, Reservation, Notification
 from shared_planner.db.settings import get
 from shared_planner.db.session import SessionLock
+from shared_planner.week import monday_str
 
 # Load environment variables from .env file
 load_dotenv()
@@ -64,10 +65,10 @@ def queue_reminders():
                     "base_domain": get("base_domain").value,
                     "date": reservation.date,
                     "duration": reservation.end_time - reservation.start_time,
-                    "year": reservation.date.year,
-                    "week": reservation.date.isocalendar()[1],
+                    "shop_name": reservation.shop.name,
+                    "maps_link": reservation.shop.maps_link,
                 },
-                route=f"/shops/{reservation.shop_id}/{reservation.date.year}/{reservation.date.isocalendar()[1]}",
+                route=f"/shops/{reservation.shop_id}/{monday_str(reservation.date)}",
                 is_reminder=True,
                 mail=True,
             )

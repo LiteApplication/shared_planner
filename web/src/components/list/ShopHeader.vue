@@ -25,7 +25,7 @@
             <div>
                 <slot name="action">
                     <Button outlined :icon="PrimeIcons.CALENDAR" class="p-1" :label="$t('message.shops.book')" v-if="shop.id != -1"
-                        @click="router.push({ name: 'shop', params: { id: shop.id, year: (new Date()).getFullYear(), week: DateToWeekNumber(new Date()) } })" />
+                        @click="router.push({ name: 'shop', params: { id: shop.id, week: getMonday(new Date()) } })" />
                     <Skeleton height="2rem" width="5em" class="mr-2" v-else></Skeleton>
                 </slot>
             </div>
@@ -42,7 +42,7 @@ import { defineComponent, type PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { PrimeIcons } from '@primevue/core/api';
 import Button from 'primevue/button';
-import { DateToWeekNumber, formatDate } from '@/utils';
+import { getMonday, formatDate } from '@/utils';
 import { useRouter } from 'vue-router';
 
 defineProps({

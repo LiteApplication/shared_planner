@@ -17,8 +17,7 @@ const $t = useI18n().t;
 
 const props = defineProps({
     shopId: { type: Number, required: true },
-    year: { type: Number, required: true },
-    weekNumber: { type: Number, required: true }
+    week: { type: String, required: true }, // Monday, yyyy-mm-dd
 }); reformatTime
 
 const displayedTasks: Ref<Task[][]> = ref([[], [], [], [], [], [], []] as Task[][]);
@@ -40,7 +39,7 @@ const isLoading = defineModel("loading", {
 
 // Watch the props 
 watch(
-    () => props.weekNumber + props.year * 53,
+    () => props.week,
     () => {
         fetchShop(props.shopId);
     }
@@ -72,12 +71,12 @@ function onLoadShop(shop: ShopWithOpenRange) {
     );
 
 
-    const weekStart = getDateOfWeekDay(props.year, props.weekNumber, 0).getTime();
+    const weekStart = (new Date(props.week)).getTime();
     const shopStart = (new Date(shop.available_from)).getTime();
     const shopEnd = (new Date(shop.available_until)).getTime();
 
     const days = (n: number) => 1000 * 60 * 60 * 24 * n;
-    reservationApi.getPlanning(shop.id, props.year, props.weekNumber).then(
+    reservationApi.getPlanning(shop.id, props.week).then(
         planning => {
 
             displayedTasks.value = planning.map(
@@ -151,7 +150,7 @@ function onTaskClick(day: number, task: Task) {
         if (task.cursor === 'pointer') {
             editTask.value = task;
             // Get the corresponding date
-            const task_date = getDateOfWeekDay(props.year, props.weekNumber, day);
+            const task_date = getDateOfWeekDay(props.week, day);
             const task_date_ms = task_date.getTime();
             // Set the date to the task start time
             dialogTimeStart.value = new Date(task_date_ms + (task.start_time) * 60 * 1000);
@@ -165,7 +164,7 @@ function onTaskClick(day: number, task: Task) {
 }
 
 function addTaskTime(day: number, { time }: { time: string }) {
-    dialogDate.value = getDateOfWeekDay(props.year, props.weekNumber, day);
+    dialogDate.value = getDateOfWeekDay(props.week, day);
     const task_date_ms = dialogDate.value.getTime();
     dialogTimeStart.value = new Date(task_date_ms + timeToMinutes(time) * 60 * 1000);
     if (shopData.value)
@@ -185,7 +184,7 @@ function onAddTask(day: number) {
     dialogSelectedDay.value = day;
 
     // Get the corresponding date
-    dialogDate.value = getDateOfWeekDay(props.year, props.weekNumber, day);
+    dialogDate.value = getDateOfWeekDay(props.week, day);
     const task_date_ms = dialogDate.value.getTime();
 
     // Get the first 1-hour slot inside an open range with less than shop.volunteers reservations

@@ -2,8 +2,8 @@ import { api } from ".";
 import type { BookRangeRequest, ReservedTimeRange } from "./types";
 
 export default class ReservationApi {
-    async getPlanning(shopId: number, year: number, week: number): Promise<ReservedTimeRange[][]> {
-        const result = await api.get(`/res/${shopId}/${year}/${week}/list`);
+    async getPlanning(shopId: number, monday: string): Promise<ReservedTimeRange[][]> {
+        const result = await api.get(`/res/${shopId}/${monday}/list`);
         return result.data;
     }
 
@@ -38,7 +38,7 @@ export default class ReservationApi {
         return result.data;
     }
 
-    async search(search: { shop_id: number | undefined, year: number | undefined, week: number | undefined, user_id: number | undefined }): Promise<ReservedTimeRange[]> {
+    async search(search: { shop_id: number | undefined, monday: string | undefined, user_id: number | undefined }): Promise<ReservedTimeRange[]> {
         const result = await api.post(`/res/search`, search);
         return result.data;
     }

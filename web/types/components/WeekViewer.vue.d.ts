@@ -4,12 +4,8 @@ declare const _default: import("vue").DefineComponent<{
         type: NumberConstructor;
         required: true;
     };
-    year: {
-        type: NumberConstructor;
-        required: true;
-    };
-    weekNumber: {
-        type: NumberConstructor;
+    week: {
+        type: StringConstructor;
         required: true;
     };
 }, {}, {
@@ -25,12 +21,8 @@ declare const _default: import("vue").DefineComponent<{
         type: NumberConstructor;
         required: true;
     };
-    year: {
-        type: NumberConstructor;
-        required: true;
-    };
-    weekNumber: {
-        type: NumberConstructor;
+    week: {
+        type: StringConstructor;
         required: true;
     };
 }>>, {}, {}>;

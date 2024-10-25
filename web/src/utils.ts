@@ -53,10 +53,10 @@ function getDateOfWeek(y: number, w: number) {
 }
 
 
-function getDateOfWeekDay(y: number, w: number, d: number) {
-    const date = new Date(y, 0, (1 + (w - 1) * 7)); // Elle's method
-    date.setDate(date.getDate() + ((d + 1) - date.getDay()));
-    return date
+function getDateOfWeekDay(monday: Date | string, d: number) { // monday is a Date object or a string in the format 'yyyy-mm-dd'
+    const date = new Date(monday);
+    date.setDate(date.getDate() + d);
+    return date;
 }
 
 function getWeekDay(date: Date): number {
@@ -95,11 +95,13 @@ function date_start_end(start: string, duration_minutes: number, locale: string)
     }
 }
 
-function validateDates(shopData: ShopWithOpenRange | Shop | null | undefined, startTime: Date, endTime: Date, setError: (a: string | null) => void, day: number, week: number, year: number): boolean {
+function validateDates(shopData: ShopWithOpenRange | Shop | null | undefined, startTime: Date, endTime: Date, setError: (a: string | null) => void, day: number, monday: string | Date): boolean {
     if (!shopData) {
         setError('error.shop.not_loaded');
         return false;
     }
+
+    monday = new Date(monday);
 
 
     // Do not check the day if it is set to -1 or if the shop's data does not contain open_ranges
@@ -110,8 +112,8 @@ function validateDates(shopData: ShopWithOpenRange | Shop | null | undefined, st
         // Check that the start date is inside an open range
         const open_ranges = shopData?.open_ranges.filter(
             (range: OpenRange) => {
-                const rangeDay = getDateOfWeekDay(year, week, range.day).getTime();
-                const rangeDayPlusOne = getDateOfWeekDay(year, week, range.day + 1).getTime();
+                const rangeDay = getDateOfWeekDay(monday, range.day).getTime();
+                const rangeDayPlusOne = getDateOfWeekDay(monday, range.day + 1).getTime();
                 return range.day === day && rangeDayPlusOne >= shopStart && rangeDay <= shopEnd;
             }
         );
@@ -171,14 +173,7 @@ function formatDate(date: string, locale: string): string {
     return d.toLocaleDateString(locale, options)
 }
 
-function DateToWeekNumber(date: Date): number {
-    // Get the week number for the date
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-}
+
 
 function maxDate(date1: Date, date2: Date): Date {
     return date1 > date2 ? date1 : date2;
@@ -186,6 +181,19 @@ function maxDate(date1: Date, date2: Date): Date {
 
 function minDate(date1: Date, date2: Date): Date {
     return date1 < date2 ? date1 : date2;
+}
+
+function getMonday(d: Date | string): string {
+    // The week starts on Monday
+    d = new Date(d);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day == 0 ? -6 : 1); // adjust when day is sunday
+    // Add the difference to the date
+    d.setDate(diff);
+    // Cancel out the timezone offset to get the correct format when slicing
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    // Format the day to yyyy-mm-dd
+    return d.toISOString().slice(0, 10);
 }
 
 export {
@@ -201,7 +209,7 @@ export {
     validateDates,
     getWeekDay,
     formatDate,
-    DateToWeekNumber,
+    getMonday,
     maxDate,
     minDate
 };
