@@ -153,9 +153,9 @@ export default defineComponent({
         :severity="notifCount == 0 ? 'secondary' : 'info'" class="ml-4 mb-4" :icon="PrimeIcons.CHECK_SQUARE" />
     <Button :label="t('notification.delete_all')" @click="deleteAllNotifications" :severity="'danger'" class="ml-4 mb-4" :icon="PrimeIcons.TRASH"
         :disabled="notifications.length == 0" />
-    <Timeline :value="notifications_computed">
+    <Timeline :value="notifications_computed" id="timeline">
         <template #opposite="{ item }">
-            <div class="text-surface-500 dark:text-surface-400">{{ (new Date(item.date)).toDateString() }}</div>
+            <div class="text-surface-500 dark:text-surface-400 date-container">{{ d(new Date(item.date)) }}</div>
         </template>
         <template #content="{ item }">
             <div class="flex flex-col flex-shrink">
@@ -180,3 +180,20 @@ export default defineComponent({
         </template>
     </Timeline>
 </template>
+
+<style scoped>
+#timeline {
+    max-width: 100vw;
+    margin: 0;
+
+}
+
+.date-container {
+    margin: 0;
+    padding: 0;
+    font-size: 0.8rem;
+    color: #6b7280;
+    text-wrap: balance;
+    max-width: 20vw;
+}
+</style>
