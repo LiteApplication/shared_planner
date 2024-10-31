@@ -5,7 +5,7 @@ import type { TokenResponse, User } from "./types";
 const CACHE_TIMEOUT = 1000 * 30; // 30 seconds
 
 const api: AxiosInstance = axios.create({
-    baseURL: "http://localhost:8000/api",
+    baseURL: "/api",
     headers: {
         "accept": "application/json",
     },
