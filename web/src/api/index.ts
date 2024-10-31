@@ -2,7 +2,7 @@ import axios from "axios";
 import type { AxiosInstance } from "axios";
 import type { TokenResponse, User } from "./types";
 
-const CACHE_TIMEOUT = 1000 * 60 * 0; // 5 minutes
+const CACHE_TIMEOUT = 1000 * 30; // 30 seconds
 
 const api: AxiosInstance = axios.create({
     baseURL: "http://localhost:8000/api",
@@ -13,8 +13,9 @@ const api: AxiosInstance = axios.create({
 
 api.interceptors.request.use(
     config => {
-        if (localStorage.getItem('access_token') !== null)
+        if (localStorage.getItem('access_token') !== null && (new Date(localStorage.getItem('expires_at') || '0') > new Date())) {
             config.headers['Authorization'] = `Bearer ${localStorage.getItem('access_token')}`;
+        }
         return config;
     },
     error => {
@@ -25,12 +26,14 @@ api.interceptors.request.use(
 
 function setToken(token: TokenResponse) {
     localStorage.setItem("access_token", token.access_token);
+    localStorage.setItem("expires_at", token.expires_at.toString());
 }
 
 function forgetToken() {
     sessionStorage.removeItem('user');
     sessionStorage.removeItem('loginChecked');
     localStorage.removeItem("access_token");
+    localStorage.removeItem("expires_at");
 }
 
 
@@ -40,6 +43,12 @@ function saveUserToSession(user: User) {
 }
 
 function loadUserFromSession(): User | null {
+    if (localStorage.getItem('access_token') === null) {
+        return null;
+    }
+    if (new Date(localStorage.getItem('expires_at') || '0') < new Date()) {
+        return null;
+    }
     if (Date.now() - parseInt(sessionStorage.getItem('loginChecked') || '0') > CACHE_TIMEOUT) {
         return null;
     }
@@ -66,6 +75,9 @@ function cachedGet<T>(url: string): Promise<T> {
 }
 
 function invalidateCache() {
+    if (!sessionStorage) {
+        return;
+    }
     sessionStorage.clear();
 }
 

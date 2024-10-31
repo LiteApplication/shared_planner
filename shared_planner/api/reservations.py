@@ -223,16 +223,29 @@ def book_time_range(
                 "notification.reservation_created",
                 {
                     "shop": shop.name,
-                    "start_time": start_time.strftime("%Y-%m-%d %H:%M"),
-                    "duration_minutes": duration.total_seconds() // 60,
+                    "datetime-start_time": start_time.strftime("%Y-%m-%d %H:%M"),
+                    "duration": duration.total_seconds() // 60,
+                    "ics": new_reservation.ics_data(),
                 },
                 route=f"/shops/{shop.id}/{monday_str(start_time)}",
-                is_reminder=True,
-                mail=get("email_confirm_reservation").asBool(),
+                is_reminder=False,
+                # Do not send a mail if we are going to send a reminder anyway
+                mail=get("email_reservation_created").asBool()
+                and (
+                    datetime.datetime.now()
+                    < (
+                        start_time
+                        - datetime.timedelta(
+                            hours=get("email_notification_before").asInt()
+                        )
+                    )
+                ),
             )
         )
 
-        if get("notif_admin_reservation_created").asBool():
+        if get("notif_admin_reservation_created").asBool() and (
+            get("notify_for_admin_actions").asBool() or not user.admin
+        ):
             session.add(
                 Notification.create(
                     None,
@@ -240,12 +253,12 @@ def book_time_range(
                     {
                         "user": user.full_name,
                         "shop": shop.name,
-                        "start_time": start_time.strftime("%Y-%m-%d %H:%M"),
+                        "datetime-start_time": start_time.strftime("%Y-%m-%d %H:%M"),
                         "duration": duration_minutes,
                     },
                     route=f"/shops/{shop.id}/{monday_str(start_time)}",
                     is_reminder=True,
-                    mail=True,
+                    mail=get("email_admin_reservation_created").asBool(),
                 )
             )
 
@@ -291,31 +304,67 @@ def update_reservation(
             reservation.end_time - reservation.start_time
         ).total_seconds() // 60
 
+        if (
+            start_time == reservation.start_time
+            and duration_minutes == previous_duration
+        ):
+            # No change, no need to update
+            return ReservedTimeRange.from_reservation(reservation, user)
+
         reservation.start_time = start_time
         reservation.end_time = start_time + datetime.timedelta(minutes=duration_minutes)
         session.add(reservation)
+        session.commit()
+        session.refresh(reservation)
 
-        if get("notif_admin_reservation_modified").asBool():
+        session.add(
             Notification.create(
-                None,
+                user,
                 "notification.reservation_modified",
                 {
-                    "user": user.full_name,
                     "shop": reservation.shop.name,
-                    "start_time": reservation.start_time.strftime("%Y-%m-%d %H:%M"),
+                    "datetime-start_time": reservation.start_time.strftime(
+                        "%Y-%m-%d %H:%M"
+                    ),
                     "duration": duration_minutes,
-                    "previous_start_time": previous_start_time.strftime(
+                    "datetime-previous_start_time": previous_start_time.strftime(
                         "%Y-%m-%d %H:%M"
                     ),
                     "previous_duration": previous_duration,
+                    "ics": reservation.ics_data(update=True),
                 },
                 route=f"/shops/{reservation.shop.id}/{monday_str(start_time)}",
                 is_reminder=False,
-                mail=True,
+                mail=get("email_reservation_modified").asBool(),
+            )
+        )
+
+        if get("notif_admin_reservation_modified").asBool() and (
+            get("notify_for_admin_actions").asBool() or not user.admin
+        ):
+            session.add(
+                Notification.create(
+                    None,
+                    "notification.admin.reservation_modified",
+                    {
+                        "user": user.full_name,
+                        "shop": reservation.shop.name,
+                        "datetime-start_time": reservation.start_time.strftime(
+                            "%Y-%m-%d %H:%M"
+                        ),
+                        "duration": duration_minutes,
+                        "datetime-previous_start_time": previous_start_time.strftime(
+                            "%Y-%m-%d %H:%M"
+                        ),
+                        "previous_duration": previous_duration,
+                    },
+                    route=f"/shops/{reservation.shop.id}/{monday_str(start_time)}",
+                    is_reminder=False,
+                    mail=get("email_admin_reservation_modified").asBool(),
+                )
             )
 
         session.commit()
-        session.refresh(reservation)
         result = ReservedTimeRange.from_reservation(reservation, user)
     return result
 
@@ -335,25 +384,52 @@ def cancel_reservation(
             raise HTTPException(
                 status_code=400, detail="error.reservation.cant_cancel_validated"
             )
-        session.delete(reservation)
 
-        if get("notif_admin_reservation_cancel").asBool():
+        session.add(
             Notification.create(
-                None,
+                reservation.user,
                 "notification.reservation_cancelled",
                 {
-                    "user": user.full_name,
                     "shop": reservation.shop.name,
-                    "start_time": reservation.start_time.strftime("%Y-%m-%d %H:%M"),
+                    "datetime-start_time": reservation.start_time.strftime(
+                        "%Y-%m-%d %H:%M"
+                    ),
                     "duration": (
                         reservation.end_time - reservation.start_time
                     ).total_seconds()
                     // 60,
+                    "ics": reservation.ics_data(cancel=True),
                 },
                 route=f"/shops/{reservation.shop.id}/{monday_str(reservation.start_time)}",
                 is_reminder=False,
-                mail=True,
+                mail=get("email_reservation_cancelled").asBool(),
             )
+        )
+
+        if get("notif_admin_reservation_cancelled").asBool() and (
+            get("notify_for_admin_actions").asBool() or not user.admin
+        ):
+            session.add(
+                Notification.create(
+                    None,
+                    "notification.admin.reservation_cancelled",
+                    {
+                        "user": user.full_name,
+                        "shop": reservation.shop.name,
+                        "datetime-start_time": reservation.start_time.strftime(
+                            "%Y-%m-%d %H:%M"
+                        ),
+                        "duration": (
+                            reservation.end_time - reservation.start_time
+                        ).total_seconds()
+                        // 60,
+                    },
+                    route=f"/shops/{reservation.shop.id}/{monday_str(reservation.start_time)}",
+                    is_reminder=False,
+                    mail=get("email_admin_reservation_cancelled").asBool(),
+                )
+            )
+        session.delete(reservation)
         session.commit()
     return None
 
@@ -453,7 +529,6 @@ def search(
             query = query.where(Reservation.shop_id == shop_id)
         if user_id is not None:
             query = query.where(Reservation.user_id == user_id)
-            print(query)
         if monday is not None:
             week_start = datetime.datetime.strptime(monday, "%Y-%m-%d")
             week_end = week_start + datetime.timedelta(days=7)
@@ -480,36 +555,100 @@ def reassign_reservation(
         user = session.get(User, user_id)
         if user is None:
             raise HTTPException(status_code=404, detail="error.user.not_found")
-
-        Notification.create(
-            reservation.user,
-            "notification.reservation_reassigned_old",
-            {
-                "shop": reservation.shop.name,
-                "start_time": reservation.start_time.strftime("%Y-%m-%d %H:%M"),
-                "duration": (
-                    reservation.end_time - reservation.start_time
-                ).total_seconds()
-                // 60,
-            },
-        )
-        Notification.create(
-            user,
-            "notification.reservation_reassigned_new",
-            {
-                "shop": reservation.shop.name,
-                "start_time": reservation.start_time.strftime("%Y-%m-%d %H:%M"),
-                "duration": (
-                    reservation.end_time - reservation.start_time
-                ).total_seconds()
-                // 60,
-            },
-            route=f"/shops/{reservation.shop.id}/{monday_str(reservation.start_time)}",
-        )
-
         reservation.user_id = user.id
         session.add(reservation)
         session.commit()
         session.refresh(reservation)
+
+        session.add(
+            Notification.create(
+                user=reservation.user,
+                message="notification.reservation_reassigned_old",
+                data={
+                    "shop": reservation.shop.name,
+                    "datetime-start_time": reservation.start_time.strftime(
+                        "%Y-%m-%d %H:%M"
+                    ),
+                    "duration": (
+                        reservation.end_time - reservation.start_time
+                    ).total_seconds()
+                    // 60,
+                    "ics": reservation.ics_data(cancel=True),
+                },
+                mail=True,
+            )
+        )
+        session.add(
+            Notification.create(
+                user=user,
+                message="notification.reservation_reassigned_new",
+                data={
+                    "shop": reservation.shop.name,
+                    "datetime-start_time": reservation.start_time.strftime(
+                        "%Y-%m-%d %H:%M"
+                    ),
+                    "duration": (
+                        reservation.end_time - reservation.start_time
+                    ).total_seconds()
+                    // 60,
+                    "ics": reservation.ics_data(),
+                },
+                route=f"/shops/{reservation.shop.id}/{monday_str(reservation.start_time)}",
+                mail=True,
+            )
+        )
+        session.commit()
+
         result = ReservedTimeRange.from_reservation(reservation, user)
     return result
+
+
+@router.get("/all_data/{api_key}")
+def get_all_data(api_key: str) -> str:
+    """Get all the data from the database"""
+    if get("api_key").value == "":
+        raise HTTPException(status_code=403, detail="error.api_key_not_set")
+    if api_key != get("api_key").value:
+        raise HTTPException(status_code=403, detail="error.api_key_invalid")
+
+    import csv
+    from io import StringIO
+
+    output = StringIO()
+
+    with SessionLock() as session:
+        # Dump all the reservations, the users and the shops associated, the duration of each reservation
+        query = (
+            select(Reservation)
+            .order_by(Reservation.start_time)
+            .order_by(Reservation.shop_id)
+        )
+        reservations = session.exec(query)
+        writer = csv.DictWriter(
+            output,
+            fieldnames=[
+                "shop_name",
+                "user_name",
+                "user_email",
+                "user_group",
+                "user_admin",
+                "start_time",
+                "duration",
+            ],
+        )
+        writer.writeheader()
+        for res in reservations:
+            writer.writerow(
+                {
+                    "shop_name": res.shop.name,
+                    "user_name": res.user.full_name,
+                    "user_email": res.user.email,
+                    "user_group": res.user.group,
+                    "user_admin": res.user.admin,
+                    "start_time": res.start_time,
+                    "duration": (res.end_time - res.start_time).total_seconds() // 60,
+                }
+            )
+
+    output.close()
+    return output.getvalue()

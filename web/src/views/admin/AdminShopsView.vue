@@ -129,6 +129,7 @@ import Toolbar from 'primevue/toolbar';
 import { networkDate, networkDateTime } from '@/utils';
 import InputMask from 'primevue/inputmask';
 import handleError from '@/error_handler';
+import { invalidateCache } from '@/api';
 const toast = useToast();
 const $t = useI18n().t;
 
@@ -151,6 +152,8 @@ function validTime(time: string) {
 
 function loadList() {
     loading.value = true;
+    invalidateCache();
+
     shopApi.list().then(
         (r) => {
             shops.value = r;
@@ -194,6 +197,7 @@ function addOpenRange() {
 
 function onOpenRangeSave(event: { newData: OpenRange, data: OpenRange, index: number }) {
     const { newData, data, index } = event;
+    invalidateCache();
 
     selectedShop.value!.open_ranges[index] = newData; // optimistic update
 
@@ -219,6 +223,7 @@ function onOpenRangeSave(event: { newData: OpenRange, data: OpenRange, index: nu
 }
 
 function deleteOpenRange(id: number) {
+    invalidateCache();
     shopApi.deleteOpenRange(id).then(
         () => {
             toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.shop.or_deleted") });
@@ -247,6 +252,7 @@ function saveShop() {
         return;
     }
 
+    invalidateCache();
     shopApi.update(selectedShop.value).then(
         () => {
             loadShopDetails();

@@ -18,9 +18,9 @@ if (localStorage.getItem('locale') === null) {
     if (Object.keys(languages).includes(browserLanguage)) {
         localStorage.setItem('locale', browserLanguage);
     } else {
-        console.warn(`Language ${browserLanguage} not supported, falling back to en`);
+        console.warn(`Language ${browserLanguage} not supported, falling back to fr-FR`);
 
-        localStorage.setItem('locale', 'en');
+        localStorage.setItem('locale', 'fr-FR');
     }
 }
 

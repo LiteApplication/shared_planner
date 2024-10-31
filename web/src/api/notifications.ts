@@ -23,8 +23,9 @@ export default class NotificationsApi {
         await api.delete(`/notifications/id/${id}`);
     }
 
-    async delete_all(): Promise<void> {
-        await api.delete(`/notifications/all`);
+    async delete_all(): Promise<Notification[]> {
+        const result = await api.delete(`/notifications/all`);
+        return result.data;
     }
 
     async mark_as_read(id: number): Promise<Notification> {

@@ -1,0 +1,25 @@
+<div>
+    <div style="color:green;">Réservation créée</div>
+    <table style="width: 100%;">
+        <tr>
+            <td colspan="3">
+                <a title="Voir sur Google Maps" href="{maps_link}" style="text-decoration: none; color: #007BFF;">
+                    🌍 <strong>{shop}</strong>
+                </a>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div>Date : <strong>{datetime-start_time}</strong></div>
+                <div>Durée : <strong>{duration}</strong></div>
+            </td>
+
+            <td style="text-align: right;">
+                <a href="{base_domain}{route}"
+                    style="display: inline-block; padding: 10px 20px; background-color: #007BFF; color: white; text-decoration: none; border-radius: 5px;">Voir
+                    la réservation</a>
+            </td>
+        </tr>
+    </table>
+</div>

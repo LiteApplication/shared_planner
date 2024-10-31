@@ -1,5 +1,5 @@
-import type { ComposerTranslation } from "vue-i18n";
 import type { ShopWithOpenRange, OpenRange, Shop } from "./api/types";
+
 
 function timeToMinutes(time: string): number {
 

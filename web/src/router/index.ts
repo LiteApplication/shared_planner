@@ -14,6 +14,11 @@ const router = createRouter({
       component: () => import('../views/RegisterView.vue')
     },
     {
+      path: '/reset_password/:token/:first_setup',
+      name: 'reset_password',
+      component: () => import('../views/ResetPasswordView.vue')
+    },
+    {
       path: '/notifications',
       name: 'notifications',
       component: () => import('../views/NotificationsView.vue')

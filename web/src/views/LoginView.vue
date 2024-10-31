@@ -27,7 +27,11 @@ const onSubmit = async () => {
     }
     authApi.login(email.value, password.value).then(
         () => {
-            router.go(-1);
+            if (router.currentRoute.value.query.redirect) {
+                router.replace(router.currentRoute.value.query.redirect as string);
+            } else {
+                router.replace({ name: 'reservations' });
+            }
         }
     ).catch(
         error => {
@@ -59,12 +63,12 @@ const onSubmit = async () => {
 
                     <div class="flex flex-col gap-2">
                         <label for="email">{{ $t("message.email") }}</label>
-                        <InputText id="email" v-model="email" />
+                        <InputText id="email" v-model="email" autocomplete="email" />
                     </div>
 
                     <div class="flex flex-col gap-2">
                         <label for="password">{{ $t("message.password") }}</label>
-                        <Password v-model="password" :feedback="false" id="password" />
+                        <Password v-model="password" :feedback="false" id="password" autocomplete="current-password" />
                     </div>
                 </div>
 
@@ -73,7 +77,7 @@ const onSubmit = async () => {
                 <p class="error" v-if="error_msg != '' && password == ''"> {{ error_msg }}</p>
                 <div class="flex gap-4 mt-1">
                     <Button v-bind:label="$t('message.to_register')" severity="secondary" outlined class="w-2/3"
-                        v-on:click="$router.replace('/register')" />
+                        v-on:click="$router.replace({ name: 'register' })" />
                     <Button v-bind:label="$t('message.login')" class="w-1/3" v-on:click="onSubmit" />
                 </div>
             </template>

@@ -4,9 +4,11 @@ import App from './App.vue'
 import router from './router'
 import { createApp } from 'vue';
 import PrimeVue, { defaultOptions } from 'primevue/config';
+import ConfirmationService from 'primevue/confirmationservice';
 import Aura from '@primevue/themes/aura';
 import { createI18n } from 'vue-i18n';
 import messages from './language';
+import { datetimeFormats } from './language';
 import Tooltip from 'primevue/tooltip';
 import ToastService from 'primevue/toastservice';
 import Ripple from 'primevue/ripple';
@@ -29,17 +31,20 @@ app.use(PrimeVue, {
     locale: {
         ...defaultOptions.locale,
         firstDayOfWeek: 1,        // change to Monday
+
     },
 });
 app.use(router)
+app.use(ConfirmationService);
 app.directive('tooltip', Tooltip);
 app.use(ToastService);
 app.directive('ripple', Ripple);
 
 const i18n = createI18n({
     legacy: false,
-    locale: 'en',
-    messages
+    locale: 'fr-FR',
+    messages,
+    datetimeFormats
 });
 
 app.use(i18n);

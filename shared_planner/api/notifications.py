@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlmodel import delete
 
 
 from shared_planner.api.auth import CurrentUser
@@ -13,7 +14,6 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 def count_notifications(user: User = Depends(CurrentUser)) -> int:
     with SessionLock() as session:
         count = Notification.count_unread(user, session)
-
     return count
 
 
@@ -57,13 +57,10 @@ def delete_notification(notification_id: int, user: User = Depends(CurrentUser))
 @router.delete("/all")
 def delete_all_notifications(user: User = Depends(CurrentUser)):
     with SessionLock() as session:
-        notifications = session.exec(
-            select(Notification).where(Notification.user_id == user.id)
-        ).all()
-        for notification in notifications:
-            session.delete(notification)
+        session.exec(delete(Notification).where(Notification.user_id == user.id))
         session.commit()
-    return notifications
+        result = list_notifications(user)
+    return result
 
 
 @router.patch("/id/{notification_id}/read")
@@ -103,16 +100,15 @@ def mark_unread(notification_id: int, user: User = Depends(CurrentUser)):
 @router.patch("/all/read")
 def mark_all_read(user: User = Depends(CurrentUser)):
     with SessionLock() as session:
-        notifications: list[Notification] = (
-            session.exec(select(Notification).where(Notification.user_id == user.id))
-            .scalars()
-            .all()
-        )
+        notifications: list[Notification] = Notification.find_unread(user, session)
         for notification in notifications:
             notification.mark_read()
             session.add(notification)
+
         session.commit()
         for notification in notifications:
             session.refresh(notification)
+
+        notifications = Notification.list_notifications(user, session)
 
     return notifications

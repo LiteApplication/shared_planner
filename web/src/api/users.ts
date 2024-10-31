@@ -36,8 +36,12 @@ export default class UsersApi {
         return result.data;
     }
 
-    async debugToggleAdmin(): Promise<void> {
-        await api.post('/users/toggle_admin');
+    async requestPasswordReset(email: string): Promise<void> {
+        await api.post('/users/request_password_reset', { email });
+    }
+
+    async resetPassword(token: string, password: string): Promise<void> {
+        await api.post('/users/reset_password', { token, password });
     }
 }
 

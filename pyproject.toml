@@ -22,6 +22,6 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.poetry.scripts]
-main = "shared_planner.main:main"
 mail_daemon = "shared_planner.mailer_daemon:main"
+serve_mail = "shared_planner.mailer_daemon:serve_mail"
 init_settings = "shared_planner.db.settings:init_settings"

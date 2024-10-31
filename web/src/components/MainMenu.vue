@@ -33,7 +33,7 @@ onMounted(() => {
         (r) => {
             notificationModel.value = r;
         }
-    ).catch(handleError(toast, $t, "error.notification.unknown"));
+    );
 });
 
 const items = ref<any>([

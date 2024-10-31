@@ -51,10 +51,12 @@ import Button from 'primevue/button';
 import Message from 'primevue/message';
 import DatePicker from '../primevue/DatePicker';
 import { useI18n } from 'vue-i18n';
+import { useConfirm } from 'primevue/useconfirm';
 import Select from 'primevue/select';
 import Checkbox from 'primevue/checkbox';
 
 const $t = useI18n().t;
+const confirm = useConfirm();
 
 
 const startTimeModel = defineModel<Date>("startTime", {
@@ -168,8 +170,17 @@ function saveClicked() {
 }
 
 function deleteClicked() {
-    emit('delete');
-    visibleModel.value = false;
+    console.log("DElete clicked");
+    confirm.require({
+        header: $t('message.reservation.delete'),
+        message: $t('message.reservation.confirm_delete'),
+        acceptProps: { icon: 'pi pi-trash', label: $t('message.reservation.delete'), className: 'p-button-danger p-button' },
+        rejectProps: { label: $t('message.cancel'), className: 'p-button-secondary p-button' },
+        accept: () => {
+            emit('delete');
+            visibleModel.value = false;
+        }
+    });
 }
 
 </script>

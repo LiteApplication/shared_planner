@@ -4,8 +4,21 @@ import hashlib
 import json
 from typing import TYPE_CHECKING
 from fastapi.exceptions import HTTPException
-from sqlmodel import Field, SQLModel, Relationship, func, not_, or_, and_, select
+from sqlmodel import (
+    Field,
+    SQLModel,
+    Relationship,
+    func,
+    not_,
+    or_,
+    and_,
+    select,
+    true,
+    false,
+)
 import bcrypt
+import secrets
+
 
 if TYPE_CHECKING:
     from shared_planner.db.session import SessionLock
@@ -17,7 +30,7 @@ class User(SQLModel, table=True):
     id: int = Field(primary_key=True, default=None)  # ID of the user
     full_name: str  # Displayed name
     email: str = Field(index=True, unique=True)  # Email of the user
-    hashed_password: bytes  # Password hashed
+    hashed_password: bytes = b""  # Password hashed
     admin: bool = False  # Is the user an admin
     group: str  # Group of the user
     reservations: list["Reservation"] = Relationship(
@@ -35,8 +48,14 @@ class User(SQLModel, table=True):
         self.hashed_password = bcrypt.hashpw(pre_hash, salt)
 
     def check_password(self, password: str) -> bool:
+        if not self.hashed_password:
+            return False  # Timing attacks are possible here but only to know if the user is initialized
         pre_hash = base64.b64encode(hashlib.sha256(password.encode("utf-8")).digest())
         return bcrypt.checkpw(pre_hash, self.hashed_password)
+
+    @staticmethod
+    def get_admins(session: "SessionLock") -> list["User"]:
+        return session.exec(select(User).where(User.admin == True)).all()  # noqa: E712
 
 
 class Shop(SQLModel, table=True):
@@ -96,6 +115,21 @@ class Reservation(SQLModel, table=True):
             )
         ).all()
 
+    def ics_data(self, cancel: bool = False, update: bool = False) -> dict:
+        from shared_planner.db.settings import get
+
+        return {
+            "event_name": "Réservation chez " + self.shop.name,
+            "start_time": self.start_time.strftime("%Y-%m-%d %H:%M"),
+            "duration_minutes": (self.end_time - self.start_time).total_seconds() // 60,
+            "description": f"Réservation chez {self.shop.name}\nCliquer pour ouvrir dans Google Maps : {self.shop.maps_link}",
+            "location": self.shop.maps_link,
+            "organizer": get("mail_from").value,
+            "id": self.id,
+            "cancel": cancel,
+            "update": update,
+        }
+
 
 class Token(SQLModel, table=True):
     """Represents a token in the database"""
@@ -114,7 +148,7 @@ class Token(SQLModel, table=True):
     def create_token(user: User) -> "Token":
         return Token(
             user=user,
-            access_token=bcrypt.gensalt().decode("utf-8"),
+            access_token=secrets.token_urlsafe(32),
             expires_at=datetime.datetime.now() + datetime.timedelta(days=1),
         )
 
@@ -171,7 +205,7 @@ class Notification(SQLModel, table=True):
         return Notification(
             user=user,
             message=message,
-            data=json.dumps(data) if data else None,
+            data=json.dumps(data) if data else "{}",
             route=route,
             date=datetime.datetime.now(),
             mail=mail,
@@ -184,7 +218,10 @@ class Notification(SQLModel, table=True):
             select(Notification).where(
                 or_(
                     Notification.user_id == user.id,
-                    and_(Notification.user_id is None, user.admin),
+                    and_(
+                        Notification.user_id == None,  # noqa: E711
+                        true() if user.admin else false(),
+                    ),
                 ),
                 not_(Notification.read),
                 Notification.date < datetime.datetime.now(),
@@ -207,7 +244,10 @@ class Notification(SQLModel, table=True):
             select(func.count(Notification.id)).where(
                 or_(
                     Notification.user_id == user.id,
-                    and_(Notification.user_id is None, user.admin),
+                    and_(
+                        Notification.user_id == None,  # noqa: E711
+                        true() if user.admin else false(),
+                    ),
                 ),
                 not_(Notification.read),
                 Notification.date < datetime.datetime.now(),
@@ -220,7 +260,10 @@ class Notification(SQLModel, table=True):
             select(Notification).where(
                 or_(
                     Notification.user_id == user.id,
-                    and_(Notification.user_id is None, user.admin),
+                    and_(
+                        Notification.user_id == None,  # noqa: E711
+                        true() if user.admin else false(),
+                    ),
                 ),
                 Notification.date < datetime.datetime.now(),
             )
@@ -240,52 +283,52 @@ class PasswordReset(SQLModel, table=True):
 
     @staticmethod
     def create(user: User, session: "SessionLock") -> "PasswordReset":
+        # Import here to avoid circular import
+        from shared_planner.db.settings import get
+
         # Check if there is already a reset request
-        resets = session.exec(
-            select(func.count(PasswordReset)).where(
-                PasswordReset.user_id == user.id,
-                not_(PasswordReset.used),
-                PasswordReset.expires_at > datetime.datetime.now(),
-            )
-        ).first()
-        if resets[0] > 0:
-            raise HTTPException(status_code=400, detail="error.reset_request_exists")
+        # resets = session.exec(
+        #    select(func.count(PasswordReset.id)).where(
+        #        PasswordReset.user_id == user.id,
+        #        not_(PasswordReset.used),
+        #        PasswordReset.expires_at > datetime.datetime.now(),
+        #    )
+        # ).first()
+
+        # if resets > 0:
+        #    raise HTTPException(status_code=400, detail="error.reset_request_exists")
+
         # Create the reset request
         return PasswordReset(
             user=user,
-            token=bcrypt.gensalt(64).decode("utf-8"),
-            expires_at=datetime.datetime.now() + datetime.timedelta(days=1),
+            token=secrets.token_urlsafe(32),
+            expires_at=datetime.datetime.now()
+            + datetime.timedelta(hours=get("reset_token_validity").asInt()),
         )
 
     @staticmethod
-    def check_token(token: str, session: "SessionLock") -> None:
+    def check_token(token: str, session: "SessionLock") -> "PasswordReset":
         result = session.exec(
             select(PasswordReset).where(PasswordReset.token == token)
         ).first()
         if result is None:
-            raise HTTPException(status_code=404, detail="error.invalid_reset_token")
+            raise HTTPException(
+                status_code=404, detail="error.auth.invalid_reset_token"
+            )
 
         if result.expires_at < datetime.datetime.now():
-            raise HTTPException(status_code=400, detail="error.expired_reset_token")
+            raise HTTPException(
+                status_code=400, detail="error.auth.expired_reset_token"
+            )
 
         if result.used:
-            raise HTTPException(status_code=400, detail="error.used_reset_token")
-        return
+            raise HTTPException(status_code=400, detail="error.auth.used_reset_token")
+        return result
 
     @staticmethod
     def use_token(token: str, password: str, session: "SessionLock") -> None:
         # Get the reset request
-        reset: PasswordReset = session.exec(
-            select(PasswordReset).where(
-                PasswordReset.token == token,
-                not_(PasswordReset.used),
-                PasswordReset.expires_at > datetime.datetime.now(),
-            )
-        ).first()
-
-        # Check if the token is valid
-        if reset is None:
-            raise HTTPException(status_code=400, detail="error.invalid_token")
+        reset: PasswordReset = PasswordReset.check_token(token, session)
         # Mark the token as used
         reset.used = True
         # Set the new password

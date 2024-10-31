@@ -1,4 +1,4 @@
-import { api, forgetToken, setToken } from ".";
+import { api, forgetToken, invalidateCache, setToken } from ".";
 import type { User } from "./types";
 
 
@@ -13,14 +13,12 @@ export default class AuthApi {
 
   }
 
-  async register(email: string, password: string, full_name: string, group: string): Promise<void> {
+  async register(email: string, full_name: string, group: string): Promise<void> {
     const bodyFormData = new FormData();
     bodyFormData.append('email', email);
-    bodyFormData.append('password', password);
     bodyFormData.append('full_name', full_name);
     bodyFormData.append('group', group);
-    const response = await api.post("/auth/register", bodyFormData);
-    setToken(response.data);
+    await api.post("/auth/register", bodyFormData);
   }
 
   async me(): Promise<User> {
@@ -29,13 +27,13 @@ export default class AuthApi {
 
   async logout(): Promise<void> {
     try {
-      forgetToken();
       await api.post("/auth/logout");
     } catch (e: any) {
-      if (e.response?.status === 401) {
-        return;
+      if (e.response?.status !== 401) {
+        console.log(e)
       }
-      console.log(e)
     }
+    invalidateCache();
+    forgetToken();
   }
 }

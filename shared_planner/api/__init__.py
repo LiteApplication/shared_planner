@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse
+from contextlib import asynccontextmanager
 
 from shared_planner.api.auth import router as auth_router
 from shared_planner.api.users import router as users_router
@@ -10,9 +11,26 @@ from shared_planner.api.shops import router as shops_router, timerange_router
 from shared_planner.api.reservations import router as reservations_router
 from shared_planner.api.settings import router as settings_router
 from shared_planner.api.notifications import router as notifications_router
+from shared_planner.mailer_daemon import start_mailer_daemon, stop_mailer_daemon
 from pathlib import Path
 
-app = FastAPI(swagger_ui_parameters={"persistAuthorization": True}, root_path="/api")
+
+@asynccontextmanager
+async def mailer_daemon_context(app: FastAPI):
+    start_mailer_daemon()
+    try:
+        yield
+    finally:
+        stop_mailer_daemon()
+
+
+app = FastAPI(
+    swagger_ui_parameters={"persistAuthorization": True},
+    root_path="/api",
+    title="Shared Planner API",
+    version="1.0",
+    lifespan=mailer_daemon_context,
+)
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent / "web" / "dist"
 
@@ -41,7 +59,7 @@ def sanitize_path(path: str) -> str:
 def serve_my_app(rest_of_path: str):
     rest_of_path = sanitize_path(rest_of_path)
 
-    if rest_of_path == "":
+    if rest_of_path == "" or rest_of_path == "/" or rest_of_path == ".":
         return FileResponse(BASE_DIR / "index.html")
     if (BASE_DIR / rest_of_path).exists():
         return FileResponse(BASE_DIR / rest_of_path)

@@ -15,7 +15,7 @@
                 <template #end>
                     <IconField>
                         <InputIcon>
-                            <i class=" pi pi-search" />
+                            <i class="pi pi-search" />
                         </InputIcon>
                         <InputText v-model="filters['global'].value" placeholder="Keyword Search" />
                     </IconField>
@@ -30,17 +30,17 @@
         <Column selectionMode="multiple" header-style="width: 3em"></Column>
         <Column field="full_name" :header="$t('message.full_name')" sortable>
             <template #editor>
-                <InputText v-model="editField_full_name" />
+                <InputText v-model="editField_full_name" fluid />
             </template>
         </Column>
         <Column field="email" :header="$t('message.email')" sortable>
             <template #editor>
-                <InputText v-model="editField_email" mode="email" />
+                <InputText v-model="editField_email" mode="email" fluid />
             </template>
         </Column>
         <Column field="group" :header="$t('message.group')" sortable>
             <template #editor>
-                <InputText v-model="editField_group" />
+                <InputText v-model="editField_group" fluid />
             </template>
         </Column>
 
@@ -52,6 +52,15 @@
                 <ToggleSwitch v-model="editField_admin" />
             </template>
         </Column>
+        <Column :header="!editingRows.length ? $t('admin.confirmed_account') : $t('admin.actions')" field="confirmed" sortable data-type="boolean">
+            <template #body="{ data }">
+                <i class="pi" :class="{ 'pi-check-circle text-green-500': data.confirmed, 'pi-times-circle text-red-400': !data.confirmed }"></i>
+            </template>
+            <template #editor>
+                <Button icon="pi pi-unlock" :label="$t('message.reset_password')" severity="warn" @click="resetPassword(editingRows[0])"
+                    :disabled="resetPasswordLoading" :loading="resetPasswordLoading" /> </template>
+        </Column>
+
         <Column row-editor style="width: 10%; min-width: 8rem" bodyStyle="text-align:center"></Column>
     </DataTable>
 </template>
@@ -73,9 +82,12 @@ import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import Toolbar from 'primevue/toolbar';
 import handleError from '@/error_handler';
+import { useConfirm } from 'primevue/useconfirm';
+import { invalidateCache } from '@/api';
 
 const toast = useToast();
 const $t = useI18n().t;
+const confirm = useConfirm();
 
 const users = ref<User[]>([
     exampleUser,
@@ -93,6 +105,7 @@ const editField_full_name = ref('');
 const editField_email = ref('');
 const editField_group = ref('');
 const editField_admin = ref(false);
+const resetPasswordLoading = ref(false);
 
 const onRowEditInit = (e: any) => {
     editingRows.value = [e.data];
@@ -111,6 +124,7 @@ function loadList() {
 }
 
 const saveRow = (e: any) => {
+    invalidateCache();
 
     usersApi.update({
         id: e.data.id,
@@ -118,6 +132,7 @@ const saveRow = (e: any) => {
         email: editField_email.value,
         group: editField_group.value,
         admin: editField_admin.value,
+        confirmed: e.data.confirmed,
     }).then(loadList).catch(handleError(toast, $t));
     users.value = users.value.map(
         (u) => {
@@ -128,6 +143,7 @@ const saveRow = (e: any) => {
                     email: editField_email.value,
                     group: editField_group.value,
                     admin: editField_admin.value,
+                    confirmed: e.data.confirmed,
                 }
             }
             return u;
@@ -146,17 +162,42 @@ function addUser() {
 
 // Function to confirm and delete selected users
 const confirmDeleteSelectedUsers = () => {
-    if (confirm($t('admin.confirm_delete_selected_users'))) {
-        deleteSelectedUsers().then(
-            () => {
-                selectedUsers.value = [];
-                toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.user_deleted") });
-                loadList();
-            }
-        ).catch(handleError(toast, $t));
+    confirm.require({
+        message: $t('admin.confirm_delete_selected_users'),
+        header: $t('admin.confirmation'),
+        icon: 'pi pi-exclamation-triangle',
+        accept: () => {
+            deleteSelectedUsers().then(
+                () => {
+                    selectedUsers.value = [];
+                    toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.user_deleted") });
+                    loadList();
+                }
+            ).catch(handleError(toast, $t));
+        },
 
-    }
+        acceptProps: {
+            label: $t('admin.delete'),
+            icon: 'pi pi-trash',
+            class: 'p-button-danger p-button'
+        },
+        rejectProps: {
+            label: $t('admin.cancel'),
+            icon: 'pi pi-times',
+            class: 'p-button-secondary p-button'
+        }
+    });
 };
+
+function resetPassword(user: User) {
+    resetPasswordLoading.value = true;
+    usersApi.requestPasswordReset(user.email).then(
+        () => {
+            resetPasswordLoading.value = false;
+            toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.password_reset_email_sent") });
+        }
+    ).catch(handleError(toast, $t));
+}
 
 // Function to delete selected users
 const deleteSelectedUsers = async () => {

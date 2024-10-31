@@ -145,6 +145,7 @@ onMounted(
 
 
 function onTaskClick(day: number, task: Task) {
+    console.log(task);
     addVisible.value = false;
     if (task.id !== null) {
         if (task.cursor === 'pointer') {
@@ -152,10 +153,11 @@ function onTaskClick(day: number, task: Task) {
             // Get the corresponding date
             const task_date = getDateOfWeekDay(props.week, day);
             const task_date_ms = task_date.getTime();
+            const tz_offset = task_date.getTimezoneOffset() * 60 * 1000;
             // Set the date to the task start time
-            dialogTimeStart.value = new Date(task_date_ms + (task.start_time) * 60 * 1000);
+            dialogTimeStart.value = new Date(task_date_ms + (task.start_time) * 60 * 1000 + tz_offset);
             // Set the end time on the same day
-            dialogTimeEnd.value = new Date(task_date_ms + (task.end_time) * 60 * 1000);
+            dialogTimeEnd.value = new Date(task_date_ms + (task.end_time) * 60 * 1000 + tz_offset);
             dialogDate.value = task_date;
             dialogSelectedDay.value = day;
             editVisible.value = true;

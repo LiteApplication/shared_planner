@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n';
 import { authApi } from '@/main';
 import { useToast } from 'primevue/usetoast';
 import { useRouter } from 'vue-router';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import LoadingScreen from './LoadingScreen.vue';
 import { defineComponent } from 'vue';
 import { loadUserFromSession, saveUserToSession } from '@/api';
@@ -19,7 +19,6 @@ const toast = useToast();
 const $router = useRouter();
 const $t = useI18n().t;
 
-const isAdmin = ref(false);
 
 
 const userModel = defineModel("user", {
@@ -37,6 +36,8 @@ const notificationCount = defineModel("notificationCount", {
     required: false,
     default: 0
 });
+
+const isAdmin = computed(() => userModel.value?.admin);
 
 const props = defineProps({
     additionalLoading: {
@@ -62,7 +63,6 @@ async function fetchData() {
             saveUserToSession(user);
             userModel.value = user;
             loadingModel.value = false;
-            isAdmin.value = user.admin;
         },
         error => {
             if (error.response && error.response.status === 401) {

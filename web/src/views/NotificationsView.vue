@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { defineComponent, onMounted, ref } from 'vue';
+import { computed, defineComponent, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import EnsureLoggedIn from '@/components/EnsureLoggedIn.vue';
-import MainMenu from '@/components/MainMenu.vue';
 import Timeline from 'primevue/timeline';
 import { exampleNotification } from '@/api/types';
 import type { Notification } from '@/api/types';
 import { PrimeIcons } from '@primevue/core/api';
 import { notificationsApi } from '@/main';
 import Button from 'primevue/button';
+import { useConfirm } from "primevue/useconfirm";
 import handleError from '@/error_handler';
 import { useToast } from 'primevue/usetoast';
 
 const toast = useToast();
-const $t = useI18n().t;
+const { t, d } = useI18n();
+const confirm = useConfirm();
 
 const notifications = ref<Notification[]>([exampleNotification, exampleNotification, exampleNotification]);
 
@@ -26,7 +26,38 @@ onMounted(() => {
         (r) => {
             notifications.value = sorted(r);
         }
-    ).catch(handleError(toast, $t, "error.notification.unknown"));
+    ).catch(handleError(toast, t, "error.notification.unknown"));
+});
+
+const notifications_computed = computed(() => {
+    return notifications.value.map(n => {
+        const data = JSON.parse(n.data);
+        // if a field's name starts with "date-", the we format the value using d()
+        for (const key in data) {
+            if (key.startsWith("date-")) {
+                data[key] = d(data[key]);
+            }
+            if (key.startsWith("time-")) {
+                data[key] = d(data[key], 'time');
+            }
+            if (key.startsWith("datetime-")) {
+                data[key] = d(data[key], 'datetime');
+            }
+            if (key.startsWith("datetime_long-")) {
+                data[key] = d(data[key], 'long');
+            }
+            if (key.startsWith("datetime_short-")) {
+                data[key] = d(data[key], 'short');
+            }
+            if (key.endsWith("duration")) {
+                // Transform 90 (minutes) into 1h30, 120 to 2h, etc.
+                const hours = Math.floor(data[key] / 60);
+                const minutes = data[key] % 60;
+                data[key] = (hours > 0 ? hours + "h" : "") + (minutes > 0 ? minutes + "min" : "");
+            }
+        }
+        return { ...n, data: data };
+    });
 });
 
 
@@ -51,7 +82,7 @@ const getColor = (notification: Notification) => {
 
 
 function deleteNotification(notif: Notification) {
-    notificationsApi.delete(notif.id).catch(handleError(toast, $t));
+    notificationsApi.delete(notif.id).catch(handleError(toast, t));
     if (!notif.read) {
         notifCount.value -= 1;
     }
@@ -61,7 +92,7 @@ function deleteNotification(notif: Notification) {
 function markAsRead(notif: Notification) {
     notificationsApi.mark_as_read(notif.id).then((r) => {
         notifications.value = sorted(notifications.value.map(n => n.id === notif.id ? r : n));
-    }).catch(handleError(toast, $t));
+    }).catch(handleError(toast, t));
     if (!notif.read) {
         notifCount.value -= 1;
     }
@@ -71,7 +102,7 @@ function markAsRead(notif: Notification) {
 function markAsUnread(notif: Notification) {
     notificationsApi.mark_as_unread(notif.id).then((r) => {
         notifications.value = sorted(notifications.value.map(n => n.id === notif.id ? r : n));
-    }).catch(handleError(toast, $t));
+    }).catch(handleError(toast, t));
     if (notif.read) {
         notifCount.value += 1;
     }
@@ -81,9 +112,26 @@ function markAsUnread(notif: Notification) {
 function markAsReadAll() {
     notificationsApi.mark_all_as_read().then((r) => {
         notifications.value = sorted(r);
-    }).catch(handleError(toast, $t));
+    }).catch(handleError(toast, t));
     notifCount.value = 0;
     notifications.value.forEach(n => n.read = true);
+}
+
+function deleteAllNotifications() {
+    confirm.require({
+        header: t('notification.delete_all'),
+        message: t('notification.delete_all_confirm'),
+        icon: 'pi pi-exclamation-triangle',
+        acceptProps: { label: t('notification.delete_all'), icon: 'pi pi-trash', className: 'p-button-danger p-button' },
+        rejectProps: { label: t('notification.cancel'), icon: 'pi pi-times', className: 'p-button-secondary p-button' },
+        accept: () => {
+            notificationsApi.delete_all().then((n) => {
+                notifications.value = n;
+                notifCount.value = n.filter(n => !n.read).length;
+                toast.add({ severity: 'success', summary: t('notification.success'), detail: t('notification.all_deleted'), life: 3000 });
+            }).catch(handleError(toast, t));
+        }
+    });
 }
 
 </script>
@@ -94,32 +142,33 @@ export default defineComponent({
         EnsureLoggedIn,
         Timeline,
         // eslint-disable-next-line vue/no-reserved-component-names
-        Button
+        Button,
     }
 })
 </script>
 <template>
     <EnsureLoggedIn v-model:notification-count="notifCount" />
 
-
-    <Button :label="$t('notification.mark_all_as_read')" @click="markAsReadAll" :disabled="notifCount == 0"
+    <Button :label="t('notification.mark_all_as_read')" @click="markAsReadAll" :disabled="notifCount == 0"
         :severity="notifCount == 0 ? 'secondary' : 'info'" class="ml-4 mb-4" :icon="PrimeIcons.CHECK_SQUARE" />
-    <Timeline :value="notifications">
+    <Button :label="t('notification.delete_all')" @click="deleteAllNotifications" :severity="'danger'" class="ml-4 mb-4" :icon="PrimeIcons.TRASH"
+        :disabled="notifications.length == 0" />
+    <Timeline :value="notifications_computed">
         <template #opposite="{ item }">
             <div class="text-surface-500 dark:text-surface-400">{{ (new Date(item.date)).toDateString() }}</div>
         </template>
         <template #content="{ item }">
             <div class="flex flex-col flex-shrink">
-                <h3>{{ $t(item.message + ".title", JSON.parse(item.data)) }}</h3>
-                <p>{{ $t(item.message + ".body", JSON.parse(item.data)) }}</p>
+                <h3 v-html="t(item.message + '.title', item.data)"></h3>
+                <p v-html="t(item.message + '.body', item.data)"></p>
 
                 <div class="flex flex-row">
-                    <Button :icon="PrimeIcons.TRASH" text severity="danger" :label="$t('notification.delete')" @click="deleteNotification(item)" />
-                    <Button :icon="PrimeIcons.FILE_EXPORT" text severity="primary" :label="$t(item.message + '.access')"
+                    <Button :icon="PrimeIcons.TRASH" text severity="danger" :label="t('notification.delete')" @click="deleteNotification(item)" />
+                    <Button :icon="PrimeIcons.FILE_EXPORT" text severity="primary" :label="t(item.message + '.access')"
                         @click="$router.push(item.route)" v-if="item.route != null" />
-                    <Button :icon="PrimeIcons.CHECK_SQUARE" text severity="info" :label="$t('notification.mark_as_unread')"
-                        @click="markAsUnread(item)" v-if="item.read" />
-                    <Button :icon="PrimeIcons.STOP" text severity="info" :label="$t('notification.mark_as_read')" @click="markAsRead(item)" v-else />
+                    <Button :icon="PrimeIcons.CHECK_SQUARE" text severity="info" :label="t('notification.mark_as_unread')" @click="markAsUnread(item)"
+                        v-if="item.read" />
+                    <Button :icon="PrimeIcons.STOP" text severity="info" :label="t('notification.mark_as_read')" @click="markAsRead(item)" v-else />
                 </div>
             </div>
         </template>
@@ -129,7 +178,5 @@ export default defineComponent({
                 <i :class="getIcon(slotProps.item)" />
             </span>
         </template>
-
-
     </Timeline>
 </template>

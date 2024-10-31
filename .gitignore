@@ -2,3 +2,4 @@ database.db
 dummy_data.json
 **.pyc
 .env
+.vscode/

@@ -13,6 +13,7 @@ type User = {
     full_name: string,
     admin: boolean,
     group: string
+    confirmed: boolean
 }
 
 
@@ -21,7 +22,8 @@ const exampleUser: User = {
     email: "Loading ...",
     full_name: "Loading ...",
     admin: false,
-    group: "Loading ..."
+    group: "Loading ...",
+    confirmed: false
 }
 
 type Shop = {
@@ -107,7 +109,7 @@ type Notification = {
     user_id: number | null,
     message: string
     date: string
-    data: string | null,
+    data: string,
     icon: string | null,
     is_reminder: boolean,
     read: boolean,
@@ -122,7 +124,7 @@ const exampleNotification: Notification = {
     user_id: null,
     message: "notification.loading",
     date: "0000-00-00 00:00",
-    data: null,
+    data: "{}",
     is_reminder: false,
     read: true,
     icon: "pi pi-info-circle",
