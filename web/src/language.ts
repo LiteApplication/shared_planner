@@ -482,6 +482,7 @@ const messages = {
                     email_admin_reservation_cancelled: "Envoyer un email aux admins lors de l'annulation d'une réservation",
                     email_admin_new_user_created: "Envoyer un email aux admins lors de la création d'un nouvel utilisateur",
                     notify_for_admin_actions: "Notifier les admins pour leurs propres actions",
+                    api_key: "Clé API",
                 },
                 description: {
                     email_reservation_created: "Lorsque cette option est activée, un email est envoyé à l'utilisateur lorsque celui-ci fait une réservation.",
@@ -505,6 +506,7 @@ const messages = {
                     email_admin_reservation_cancelled: "Lorsque cette option est activée, les admins recevront une notification lorsqu'un utilisateur annule sa réservation.",
                     email_admin_new_user_created: "Lorsque cette option est activée, les admins recevront une notification lorsqu'un nouvel utilisateur est créé.",
                     notify_for_admin_actions: "Lorsque cette option est activée, tous les admins recevront une notification lorsque l'un d'eux crée, modifie ou supprime une réservation.",
+                    api_key: "Clé utilisée pour obtenir toutes les réservations dans le document Google Sheets. Cette clé doit être une longue chaîne de caractères générée aléatoirement et ne doit pas être partagée publiquement car elle permet d'accéder à toutes les réservations.",
                 }
 
             },

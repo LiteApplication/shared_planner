@@ -79,7 +79,7 @@ const items = ref<any>([
 <template>
     <Menubar :model="items" class="m-4">
         <template #start>
-            <img src="../assets/logo.png" alt="Logo" class="p-mr-2 h-12" />
+            <img src="../assets/logo.png" alt="Logo" class="p-mr-2 h-12" id="logo" />
         </template>
         <template #item="{ item, props, hasSubmenu }">
             <div v-if="!item.adminRequired || isAdmin">
@@ -120,3 +120,9 @@ export default defineComponent({
     }
 })
 </script>
+
+<style scoped>
+#logo {
+    object-fit: contain;
+}
+</style>

@@ -37,13 +37,11 @@ onMounted(() => {
             }
         }
     ).catch(handleError(toast, $t, "error.shop.unknown")).finally(() => isLoading.value = false);
-}
-)
+})
 
 watch([shopId, week], () => {
     $router.push({ params: { id: shopId.value, week: week.value } });
-}
-)
+})
 
 </script>
 <template>
