@@ -12,6 +12,9 @@ const datetimeFormats: I18nOptions['datetimeFormats'] = {
         datetime: {
             year: 'numeric', month: 'short', day: 'numeric',
             weekday: 'short', hour: 'numeric', minute: 'numeric'
+        },
+        week: {
+            weekday: 'short', month: 'short', day: 'numeric'
         }
     },
     'fr-FR': {
@@ -25,6 +28,9 @@ const datetimeFormats: I18nOptions['datetimeFormats'] = {
         datetime: {
             year: 'numeric', month: 'short', day: 'numeric',
             weekday: 'short', hour: 'numeric', minute: 'numeric'
+        },
+        week: {
+            weekday: 'short', month: 'short', day: 'numeric'
         }
     },
 }

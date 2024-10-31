@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineComponent, onMounted, ref, watch, type Ref } from 'vue';
+import { computed, defineComponent, onMounted, ref, watch, type Ref } from 'vue';
 import { reservationApi, shopApi } from '@/main';
 import type { OpenRange, ReservedTimeRange, ShopWithOpenRange, User } from '@/api/types';
 import DayTimeline from './DayTimeline.vue';
@@ -13,7 +13,7 @@ import handleError from '@/error_handler';
 
 const toast = useToast();
 
-const $t = useI18n().t;
+const { t, d } = useI18n();
 
 const props = defineProps({
     shopId: { type: Number, required: true },
@@ -36,6 +36,10 @@ const isLoading = defineModel("loading", {
     type: Boolean,
     default: false
 });
+
+const titles = computed<string[]>(
+    () => Array.from({ length: 7 }, (_, i) => d(new Date(props.week).setDate(new Date(props.week).getDate() + i), 'week'))
+)
 
 // Watch the props 
 watch(
@@ -89,7 +93,7 @@ function onLoadShop(shop: ShopWithOpenRange) {
                             start_time: timeToMinutes(range.start_time),
                             end_time: timeToMinutes(range.end_time),
                             color: 'gray',
-                            title: $t('message.shops.open'),
+                            title: t('message.shops.open'),
                             description: `${reformatTime(range.start_time)} - ${reformatTime(range.end_time)}`,
                             id: null,
                             _row: undefined,
@@ -104,7 +108,7 @@ function onLoadShop(shop: ShopWithOpenRange) {
                             start_time: timeToMinutes(range.start_time),
                             end_time: timeToMinutes(range.start_time) + range.duration_minutes,
                             color: colorTask(range),
-                            title: (range.status < 0) ? $t(range.title) : range.title,
+                            title: (range.status < 0) ? t(range.title) : range.title,
                             description: `${reformatTime(range.start_time)} - ${minutesToTime(timeToMinutes(range.start_time) + range.duration_minutes)}`,
                             id: range.id,
                             _row: undefined,
@@ -119,7 +123,7 @@ function onLoadShop(shop: ShopWithOpenRange) {
             isLoading.value = false;
         }
     ).catch(
-        handleError(toast, $t, "error.shop.not_loaded")
+        handleError(toast, t, "error.shop.not_loaded")
     );
 }
 
@@ -131,7 +135,7 @@ async function fetchShop(shopId: number) {
             onLoadShop(shop);
         }
     ).catch(
-        handleError(toast, $t, "error.shop.unknown")
+        handleError(toast, t, "error.shop.unknown")
     );
 }
 
@@ -247,7 +251,7 @@ function addReservation(startDate: Date, endDate: Date, user: User | null, valid
             addVisible.value = false;
         }
     ).catch(
-        handleError(toast, $t, "error.reservation.not_added")
+        handleError(toast, t, "error.reservation.not_added")
     );
 
 }
@@ -265,7 +269,7 @@ function updateReservation(startDate: Date, endDate: Date) {
             editVisible.value = false;
         }
     ).catch(
-        handleError(toast, $t, "error.reservation.not_updated")
+        handleError(toast, t, "error.reservation.not_updated")
     );
 }
 
@@ -280,7 +284,7 @@ function deleteReservation() {
             editVisible.value = false;
         }
     ).catch(
-        handleError(toast, $t, "error.reservation.not_deleted")
+        handleError(toast, t, "error.reservation.not_deleted")
     );
 }
 
@@ -294,15 +298,15 @@ function deleteReservation() {
         <div id="legend" class="rounded p-4 m-4 mb-0 bg-slate-100 dark:bg-slate-800">
             <div class="flex">
                 <div id="open" class="rounded square-legend"></div>
-                <p>{{ $t("message.shops.open") }}</p>
+                <p>{{ t("message.shops.open") }}</p>
             </div>
             <div class="flex">
                 <div id="booked" class="rounded square-legend"></div>
-                <p>{{ $t("message.reservation.booked") }}</p>
+                <p>{{ t("message.reservation.booked") }}</p>
             </div>
             <div class="flex">
                 <div id="booked-by-you" class="rounded square-legend"></div>
-                <p>{{ $t("message.reservation.booked_by_you") }}</p>
+                <p>{{ t("message.reservation.booked_by_you") }}</p>
             </div>
 
 
@@ -310,16 +314,16 @@ function deleteReservation() {
         <div class="weekview">
             <div class="weekview-container">
 
-                <DayTimeline v-for="[index, tasks] in displayedTasks.entries()" :key="index" :title="$t(`day.${index}`)" :tasks="tasks"
+                <DayTimeline v-for="[index, tasks] in displayedTasks.entries()" :key="index" :title="titles[index]" :tasks="tasks"
                     :startOfDay="dayBounds.start_time" :endOfDay="dayBounds.end_time" @click-task="(task: Task) => onTaskClick(index, task)"
                     @add-task="onAddTask(index)" @time-clicked="time => addTaskTime(index, time)" />
             </div>
         </div>
     </div>
-    <ReservationDialog :title="$t('message.reservation.add_title')" :description="$t('message.reservation.add_description')" show-date show-time
+    <ReservationDialog :title="t('message.reservation.add_title')" :description="t('message.reservation.add_description')" show-date show-time
         :shop-data="shopData" v-model:visible="addVisible" v-model:date="dialogDate" v-model:start-time="dialogTimeStart"
         v-model:end-time="dialogTimeEnd" @save="addReservation"></ReservationDialog>
-    <ReservationDialog :title="$t('message.reservation.edit_title')" :description="$t('message.reservation.edit_description')" show-time show-delete
+    <ReservationDialog :title="t('message.reservation.edit_title')" :description="t('message.reservation.edit_description')" show-time show-delete
         :shop-data="shopData" v-model:visible="editVisible" v-model:date="dialogDate" v-model:start-time="dialogTimeStart"
         v-model:end-time="dialogTimeEnd" @save="updateReservation" @delete="deleteReservation"></ReservationDialog>
 
