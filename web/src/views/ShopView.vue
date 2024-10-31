@@ -32,6 +32,9 @@ onMounted(() => {
     shopApi.get(shopId.value).then(
         (r) => {
             shop.value = r;
+            if (datePicked.value < new Date(shop.value.available_from)) {
+                datePicked.value = new Date(getMonday(shop.value.available_from));
+            }
         }
     ).catch(handleError(toast, $t, "error.shop.unknown")).finally(() => isLoading.value = false);
 }

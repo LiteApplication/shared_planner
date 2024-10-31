@@ -392,7 +392,7 @@ const messages = {
             time: 'Heure',
 
             reservation: {
-                new_reservation_explanation: 'Cliquez sur le bouton ci-dessous pour afficher les magasins disponibles, puis cliquez sur le bouton \'Réserver\' pour créer une réservation dans la magasin de votre choix.',
+                new_reservation_explanation: 'Cliquez sur le bouton ci-dessous pour afficher les magasins disponibles, puis cliquez sur le bouton \'Réserver\' pour créer une réservation dans le magasin de votre choix.',
                 new_reservation_button: 'Cliquez ici pour voir les magasins et réserver un créneau',
                 booked: 'Réservé',
                 booked_by_you: 'Réservé par vous',
@@ -410,10 +410,10 @@ const messages = {
             shops: {
                 description: 'Ouvert de <br/><b>{from}</b> à <br/><b>{until}</b>.<br><i>{volunteers} bénévoles nécessaires.</i><br/>{description}',
                 description_plain: 'Ouvert de {from} à {until}. {volunteers} bénévoles nécessaires.\n{description}',
-                open: 'Magasin ouverte',
+                open: 'Magasin ouvert',
                 book: 'Réserver',
                 week_format: '\'Semaine \'WW\', \'yy',
-                select: 'Veuillez sélectionner une magasin',
+                select: 'Veuillez sélectionner un magasin',
             },
         },
         admin: {
@@ -427,10 +427,10 @@ const messages = {
             cancel: 'Annuler',
             delete: 'Supprimer',
             shop: {
-                informations: 'Informations sur la magasin',
-                create: 'Créer une magasin',
-                delete: 'Supprimer la magasin',
-                name: 'Nom de la magasin',
+                informations: 'Informations sur le magasin',
+                create: 'Créer un magasin',
+                delete: 'Supprimer le magasin',
+                name: 'Nom de le magasin',
                 description: 'Description',
                 location: 'Emplacement',
                 volunteers: 'Bénévoles',
@@ -440,10 +440,10 @@ const messages = {
                 start_date: 'Date de début',
                 end_date: 'Date de fin',
 
-                created: 'La magasin a été créée avec succès.',
-                updated: 'La magasin a été mise à jour avec succès.',
-                deleted: 'La magasin a été supprimée avec succès.',
-                delete_confirm: 'Êtes-vous sûr de vouloir supprimer cette magasin ? Toutes les réservations seront supprimées.',
+                created: 'Le magasin a été créée avec succès.',
+                updated: 'Le magasin a été mise à jour avec succès.',
+                deleted: 'Le magasin a été supprimée avec succès.',
+                delete_confirm: 'Êtes-vous sûr de vouloir supprimer ce magasin ? Toutes les réservations seront supprimées.',
 
                 open_ranges: 'Plages horaires',
                 or_add: 'Ajouter une plage horaire',
@@ -513,8 +513,8 @@ const messages = {
                 select_user: 'Sélectionnez un utilisateur',
                 no_user_selected: '(Garder le même utilisateur)',
                 filter_no_user_found: 'Aucun utilisateur trouvé',
-                select_shop: 'Sélectionnez une magasin',
-                filter_no_shop_found: 'Aucune magasin trouvée',
+                select_shop: 'Sélectionnez un magasin',
+                filter_no_shop_found: 'Aucun magasin trouvée',
                 no_reservations: 'Aucune réservation trouvée',
             }
         },
@@ -562,9 +562,9 @@ const messages = {
                 time_range_overlap: 'La plage horaire se chevauche avec une plage horaire existante',
                 time_range_not_found: 'Plage horaire introuvable',
                 id_mismatch: 'Id de magasin non conforme',
-                not_loaded: 'Une erreur est survenue lors du chargement de la magasin',
+                not_loaded: 'Une erreur est survenue lors du chargement de le magasin',
                 no_id: 'Aucun id de magasin fourni',
-                unknown: 'Une erreur inconnue est survenue lors de la récupération des données de la magasin.',
+                unknown: 'Une erreur inconnue est survenue lors de la récupération des données de le magasin.',
             },
             reservation: {
                 overlap: 'Trop de réservations se chevauchent',
@@ -572,16 +572,16 @@ const messages = {
                 cant_cancel: 'Non autorisé à annuler cette réservation',
                 cant_update: 'Non autorisé à mettre à jour cette réservation',
                 cancel_validated: 'Impossible d\'annuler une réservation validée',
-                outside_open: 'La réservation doit être dans les horaires d\'ouverture de la magasin',
+                outside_open: 'La réservation doit être dans les horaires d\'ouverture de le magasin',
                 past_time: 'Impossible de réserver un créneau dans le passé',
-                before_open: 'Impossible de réserver un créneau avant l\'ouverture de la magasin',
-                after_close: 'Impossible de réserver un créneau après la fermeture de la magasin',
+                before_open: 'Impossible de réserver un créneau avant l\'ouverture de le magasin',
+                after_close: 'Impossible de réserver un créneau après la fermeture de le magasin',
 
                 end_before_start: 'L\'heure de fin doit être après l\'heure de début',
                 too_short: 'La plage horaire doit être d\'au moins {min_time} minutes',
                 too_long: 'La plage horaire doit être au maximum de {max_time} minutes',
-                not_open_day: 'La magasin n\'est pas ouverte ce jour-là',
-                not_open_time: 'La magasin n\'est pas ouverte à cette heure',
+                not_open_day: 'Le magasin n\'est pas ouverte ce jour-là',
+                not_open_time: 'Le magasin n\'est pas ouverte à cette heure',
 
                 unknown: 'Une erreur inconnue est survenue lors de la réservation de cette plage horaire.',
 
