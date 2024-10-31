@@ -87,7 +87,7 @@ function onLoadShop(shop: ShopWithOpenRange) {
                 (day_planning, index) => {
 
                     const result: Task[] = shop.open_ranges.filter(
-                        (range: OpenRange) => (index === range.day) && (weekStart + days(index + 1) >= shopStart) && (weekStart + days(index) <= shopEnd)
+                        (range: OpenRange) => (index === range.day) && (weekStart + days(index) >= shopStart) && (weekStart + days(index) <= shopEnd)
                     ).map(
                         (range: OpenRange) => ({
                             start_time: timeToMinutes(range.start_time),

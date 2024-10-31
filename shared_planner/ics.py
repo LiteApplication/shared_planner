@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import pytz
 
 
 def create_ics(
@@ -13,14 +14,27 @@ def create_ics(
     update: bool = False,
 ) -> str:
     """Create an iCalendar file for an event"""
+
     # Parse the start time
     start_time = datetime.strptime(start_time, "%Y-%m-%d %H:%M")
+
+    start_time = pytz.timezone("Europe/Paris").localize(start_time)
+
+    # Convert to UTC
+    start_time = start_time.astimezone(pytz.utc)
+    # Round that to te nearest 15 minutes
+    start_time = start_time + timedelta(minutes=7.5)
+    start_time -= timedelta(
+        minutes=start_time.minute % 15,
+        seconds=start_time.second,
+        microseconds=start_time.microsecond,
+    )
+
+    # Calculate the end time
     end_time = start_time + timedelta(minutes=duration_minutes)
+
     # Format the datetime objects to the iCalendar datetime format
-    dt_format = "%Y%m%dT%H%M%S"
-    start_time_str = start_time.strftime(dt_format)
-    end_time_str = end_time.strftime(dt_format)
-    now_str = datetime.now().strftime(dt_format)
+    dt_format = "%Y%m%dT%H%M%SZ"
     description = description.replace("\n", "\\n")
     # Parse the organizer
     organizer_name, organizer_email = organizer.split("<")
@@ -38,11 +52,30 @@ def create_ics(
     # Create the iCalendar content
     method = "PUBLISH" if (not update and not cancel) else "REQUEST"
     status = "CANCELLED" if cancel else "CONFIRMED"
+    start_time_str = start_time.strftime(f"{dt_format}Z")
+    end_time_str = end_time.strftime(f"{dt_format}Z")
+    now_str = datetime.now().strftime(f"{dt_format}Z")
 
     return f"""BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//LiteApp//SharedPlanner//EN
 METHOD:{method}
+X-WR-TIMEZONE:Europe/Paris
+BEGIN:VTIMEZONE
+TZID:Europe/Paris
+BEGIN:STANDARD
+DTSTART:20201025T030000
+RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:20200329T020000
+RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=3
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+END:DAYLIGHT
+END:VTIMEZONE
 BEGIN:VEVENT
 UID:{id}@liteapp.fr
 DTSTAMP:{now_str}

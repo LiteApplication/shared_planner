@@ -88,6 +88,8 @@ def login(
     credentials: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
     with SessionLock() as session:
+        credentials.username = credentials.username.strip().lower()
+
         statement = select(User).where(User.email == credentials.username)
         user = session.exec(statement).first()
 
