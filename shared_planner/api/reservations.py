@@ -319,7 +319,7 @@ def update_reservation(
 
         session.add(
             Notification.create(
-                user,
+                reservation.user,
                 "notification.reservation_modified",
                 {
                     "shop": reservation.shop.name,
