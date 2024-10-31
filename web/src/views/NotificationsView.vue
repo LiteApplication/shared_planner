@@ -162,7 +162,7 @@ export default defineComponent({
                 <h3 v-html="t(item.message + '.title', item.data)"></h3>
                 <p v-html="t(item.message + '.body', item.data)"></p>
 
-                <div class="flex flex-row">
+                <div class="flex flex-row flex-wrap">
                     <Button :icon="PrimeIcons.TRASH" text severity="danger" :label="t('notification.delete')" @click="deleteNotification(item)" />
                     <Button :icon="PrimeIcons.FILE_EXPORT" text severity="primary" :label="t(item.message + '.access')"
                         @click="$router.push(item.route)" v-if="item.route != null" />
