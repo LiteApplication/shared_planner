@@ -2,6 +2,7 @@ import datetime
 
 from typing import Annotated
 from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlmodel import select
 
@@ -649,7 +650,7 @@ def get_all_data(api_key: str) -> str:
                     "duration": (res.end_time - res.start_time).total_seconds() // 60,
                 }
             )
-
     value = output.getvalue()
     output.close()
-    return value
+    response = StreamingResponse(content=iter([value]), media_type="text/csv")
+    return response
