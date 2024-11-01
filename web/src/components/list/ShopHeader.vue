@@ -23,11 +23,7 @@
                 <Skeleton class="mt-2" width="25rem" height="1rem" v-else></Skeleton>
             </div>
             <div>
-                <slot name="action">
-                    <Button outlined :icon="PrimeIcons.CALENDAR" class="p-1" :label="$t('message.shops.book')" v-if="shop.id != -1"
-                        @click="router.push({ name: 'shop', params: { id: shop.id, week: getMonday(new Date()) } })" />
-                    <Skeleton height="2rem" width="5em" class="mr-2" v-else></Skeleton>
-                </slot>
+                <slot name="action"> </slot>
             </div>
         </div>
         <p v-if="shop.id != -1">{{ shop.description }}</p>
@@ -42,8 +38,7 @@ import { defineComponent, type PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { PrimeIcons } from '@primevue/core/api';
 import Button from 'primevue/button';
-import { getMonday, formatDate } from '@/utils';
-import { useRouter } from 'vue-router';
+import { formatDate } from '@/utils';
 
 defineProps({
     shop: {
@@ -53,7 +48,6 @@ defineProps({
 });
 
 const $t = useI18n().t;
-const router = useRouter();
 
 </script>
 

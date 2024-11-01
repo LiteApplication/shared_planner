@@ -650,5 +650,6 @@ def get_all_data(api_key: str) -> str:
                 }
             )
 
+    value = output.getvalue()
     output.close()
-    return output.getvalue()
+    return value

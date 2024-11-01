@@ -9,11 +9,12 @@ import EnsureLoggedIn from '@/components/EnsureLoggedIn.vue';
 import { exampleShopWithOpenRange, type ShopWithOpenRange } from '@/api/types';
 import { shopApi } from '@/main';
 import WeekViewer from '@/components/WeekViewer.vue';
-import { getMonday, maxDate } from '@/utils';
+import { getMonday } from '@/utils';
 import DatePicker from '@/components/primevue/DatePicker';
 import handleError from '@/error_handler';
 import { useToast } from 'primevue/usetoast';
 import ShopHeader from '@/components/list/ShopHeader.vue';
+import Button from 'primevue/button';
 
 const $router = useRouter();
 const $t = useI18n().t;
@@ -48,9 +49,17 @@ watch([shopId, week], () => {
     <EnsureLoggedIn :additional-loading="shop.id == -1 || isLoading" />
     <ShopHeader :shop="shop">
         <template #action>
-            <DatePicker v-model="datePicked" showIcon fluid :date-format="$t('message.shops.week_format')" :showOnFocus="false"
-                inputId="buttondisplay" :min-date="new Date(shop.available_from)" :max-date="new Date(shop.available_until)"
-                :placeholder="$t('message.select_date')" show-week />
+            <div>
+                <DatePicker v-model="datePicked" showIcon fluid :date-format="$t('message.shops.week_format')" :showOnFocus="false"
+                    inputId="buttondisplay" :min-date="new Date(shop.available_from)" :max-date="new Date(shop.available_until)"
+                    :placeholder="$t('message.select_date')" show-week />
+                <div class="flex flex-row justify-between">
+                    <Button icon="pi pi-chevron-left" @click="datePicked = new Date(datePicked.getTime() - 7 * 24 * 60 * 60 * 1000)"
+                        severity="secondary" />
+                    <Button icon="pi pi-chevron-right" @click="datePicked = new Date(datePicked.getTime() + 7 * 24 * 60 * 60 * 1000)"
+                        severity="secondary" />
+                </div>
+            </div>
         </template>
     </ShopHeader>
     <WeekViewer :shop-id="shop.id" :week="week" v-if="shop.id != -1" v-model:loading="isLoading" />
@@ -63,7 +72,9 @@ export default defineComponent({
         EnsureLoggedIn,
         DatePicker,
         WeekViewer,
-        ShopHeader
+        ShopHeader,
+        // eslint-disable-next-line vue/no-reserved-component-names
+        Button
     }
 })
 </script>
