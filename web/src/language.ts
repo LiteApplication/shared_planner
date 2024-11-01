@@ -60,6 +60,7 @@ const messages = {
             reset_password: 'Reset password',
             set_password: 'Set password',
             mail_sent: 'An email has been sent to you with a link to verify your email address.',
+            info: "Information",
 
             date: 'Date',
             time: 'Time',
@@ -210,6 +211,7 @@ const messages = {
             token: {
                 invalid: 'Invalid token',
                 expired: 'Token expired',
+                not_authenticated: 'Welcome to the site, please enter your email and password to log in, or click on the register button to create an account.',
             },
             admin: {
                 required: 'Admin role required',
@@ -393,6 +395,8 @@ const messages = {
             reset_password: 'Réinitialiser le mot de passe',
             set_password: 'Définir le mot de passe',
             mail_sent: 'Un email vous a été envoyé avec un lien pour vérifier votre adresse email.',
+            info: "Information",
+
 
             date: 'Date',
             time: 'Heure',
@@ -543,8 +547,9 @@ const messages = {
             api_key_not_set: 'La clé API n\'est pas définie dans les paramètres du serveur.',
             api_key_invalid: 'La clé API est invalide.',
             token: {
-                invalid: 'Jeton invalide',
-                expired: 'Jeton expiré',
+                invalid: 'Votre session a expiré, veuillez vous reconnecter',
+                expired: 'Votre session a expiré, veuillez vous reconnecter',
+                not_authenticated: 'Bienvenue sur le site, veuillez entrer votre email et votre mot de passe pour vous connecter, ou cliquez sur le bouton "Inscrivez-vous" pour créer un compte.',
             },
             admin: {
                 required: 'Rôle d\'administrateur requis',
