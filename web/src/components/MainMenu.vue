@@ -104,7 +104,7 @@ const prefersDarkScheme = computed(() => window.matchMedia("(prefers-color-schem
         <template #end>
             <div class="flex items-center gap-2">
                 <Button :icon="PrimeIcons.BELL" :severity="notificationModel == 0 ? 'secondary' : 'info'" :text="notificationModel == 0"
-                    :badge="notificationModel ? notificationModel.toString() : null" @click="router.push({ name: 'notifications' })" />
+                    :badge="notificationModel ? notificationModel.toString() : undefined" @click="router.push({ name: 'notifications' })" />
                 <LocaleChanger />
                 <Button :label="$t('message.logout')" rounded icon="pi pi-sign-out" @click="logout" severity="danger" outlined />
             </div>
