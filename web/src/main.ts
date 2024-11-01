@@ -42,6 +42,7 @@ app.directive('ripple', Ripple);
 
 const i18n = createI18n({
     legacy: false,
+    warnHtmlMessage: false,
     locale: 'fr-FR',
     messages,
     datetimeFormats

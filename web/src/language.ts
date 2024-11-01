@@ -701,7 +701,7 @@ const messages = {
                 },
                 reservation_modified: {
                     title: "Réservation modifiée",
-                    body: "<strong>{user}</strong> a modifié sa réservation à {shop} le <strong>{datetime-previous_start_time}</strong> pour <strong>{previous_duration}</strong> pour <strong>{datetime-start_time}</strong> pour <strong>{duration}</strong>",
+                    body: "<strong>{user}</strong> a modifié sa réservation à {shop} pour le <strong>{datetime-previous_start_time}</strong> de <strong>{previous_duration}</strong> pour le <strong>{datetime-start_time}</strong> de <strong>{duration}</strong>",
                     access: "Ouvrir la timeline"
                 },
                 reservation_cancelled: {

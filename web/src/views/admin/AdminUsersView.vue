@@ -133,7 +133,10 @@ const saveRow = (e: any) => {
         group: editField_group.value,
         admin: editField_admin.value,
         confirmed: e.data.confirmed,
-    }).then(loadList).catch(handleError(toast, $t));
+    }).then(() => {
+        if (e.cb) e.cb();
+        loadList();
+    }).catch(handleError(toast, $t));
     users.value = users.value.map(
         (u) => {
             if (u.id == e.data.id) {
@@ -191,12 +194,17 @@ const confirmDeleteSelectedUsers = () => {
 
 function resetPassword(user: User) {
     resetPasswordLoading.value = true;
-    usersApi.requestPasswordReset(user.email).then(
-        () => {
-            resetPasswordLoading.value = false;
-            toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.password_reset_email_sent") });
+    saveRow({
+        data: user, cb: () => {
+            usersApi.requestPasswordReset(user.email).then(
+                () => {
+                    resetPasswordLoading.value = false;
+                    toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.password_reset_email_sent") });
+                    editingRows.value = [];
+                }
+            ).catch(handleError(toast, $t));
         }
-    ).catch(handleError(toast, $t));
+    });
 }
 
 // Function to delete selected users

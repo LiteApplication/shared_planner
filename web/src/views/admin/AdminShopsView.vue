@@ -20,46 +20,46 @@
                                 <Button :label="$t('message.save')" icon="pi pi-save" type="submit" />
                             </div>
                         </template>
-                        <div class="flex flex-col gap-8 pt-6">
-                            <FloatLabel>
+                        <div class="flex flex-col gap-2 pt-6">
+                            <IftaLabel>
                                 <label for="name">{{ $t('admin.shop.name') }}</label>
                                 <InputText id="name" v-model="selectedShop.name" fluid />
-                            </FloatLabel>
-                            <FloatLabel>
+                            </IftaLabel>
+                            <IftaLabel>
                                 <label for="description">{{ $t("admin.shop.description") }}</label>
                                 <Textarea id="description" v-model="selectedShop.description" fluid />
-                            </FloatLabel>
-                            <FloatLabel>
+                            </IftaLabel>
+                            <IftaLabel>
                                 <label for="location">{{ $t("admin.shop.location") }}</label>
                                 <InputText id="location" v-model="selectedShop.location" fluid />
-                            </FloatLabel>
-                            <FloatLabel>
+                            </IftaLabel>
+                            <IftaLabel>
                                 <label for="maps_link">{{ $t("admin.shop.maps") }}</label>
                                 <InputText id="maps_link" v-model="selectedShop.maps_link" fluid />
-                            </FloatLabel>
-                            <div class="flex gap-4">
-                                <FloatLabel class="flex-grow">
-                                    <label for="volunteers">{{ $t("admin.shop.volunteers") }}</label>
+                            </IftaLabel>
+                            <div class="flex gap-4 flex-wrap">
+                                <IftaLabel class="flex-grow">
                                     <InputNumber id="volunteers" v-model="selectedShop.volunteers" fluid />
-                                </FloatLabel>
-                                <FloatLabel class="flex-grow">
-                                    <label for="min_time">{{ $t("admin.shop.min_time") }}</label>
+                                    <label for="volunteers">{{ $t("admin.shop.volunteers") }}</label>
+                                </IftaLabel>
+                                <IftaLabel class="flex-grow">
                                     <InputNumber id="min_time" v-model="selectedShop.min_time" fluid />
-                                </FloatLabel>
-                                <FloatLabel class="flex-grow">
-                                    <label for="max_time">{{ $t("admin.shop.max_time") }}</label>
+                                    <label for="min_time">{{ $t("admin.shop.min_time") }}</label>
+                                </IftaLabel>
+                                <IftaLabel class="flex-grow">
                                     <InputNumber id="max_time" v-model="selectedShop.max_time" fluid />
-                                </FloatLabel>
+                                    <label for="max_time">{{ $t("admin.shop.max_time") }}</label>
+                                </IftaLabel>
                             </div>
                             <div class="flex flex-wrap gap-2 flex-grow justify-between">
-                                <FloatLabel>
-                                    <label for="available_from">{{ $t("admin.shop.start_date") }}</label>
+                                <IftaLabel>
                                     <DatePicker id="available_from" v-model="startDate" v-if="selectedShop !== null" inline date-format="yy-mm-dd" />
-                                </FloatLabel>
-                                <FloatLabel>
-                                    <label for="available_until">{{ $t("admin.shop.end_date") }}</label>
+                                    <label for="available_from">{{ $t("admin.shop.start_date") }}</label>
+                                </IftaLabel>
+                                <IftaLabel>
                                     <DatePicker id="available_until" v-model="endDate" v-if="selectedShop !== null" inline date-format="yy-mm-dd" />
-                                </FloatLabel>
+                                    <label for="available_until">{{ $t("admin.shop.end_date") }}</label>
+                                </IftaLabel>
                             </div>
                         </div>
                     </Panel>
@@ -123,10 +123,10 @@ import DataTable from 'primevue/datatable';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
-import FloatLabel from 'primevue/floatlabel';
+import IftaLabel from 'primevue/iftalabel';
 import Panel from 'primevue/panel';
 import Toolbar from 'primevue/toolbar';
-import { networkDate, networkDateTime } from '@/utils';
+import { networkDate } from '@/utils';
 import InputMask from 'primevue/inputmask';
 import handleError from '@/error_handler';
 import { invalidateCache } from '@/api';
@@ -301,7 +301,7 @@ export default {
         DatePicker,
         DataTable,
         Column,
-        FloatLabel,
+        IftaLabel,
         Panel,
         Toolbar
     },

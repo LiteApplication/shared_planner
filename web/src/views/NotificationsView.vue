@@ -3,7 +3,6 @@ import { computed, defineComponent, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import EnsureLoggedIn from '@/components/EnsureLoggedIn.vue';
 import Timeline from 'primevue/timeline';
-import { exampleNotification } from '@/api/types';
 import type { Notification } from '@/api/types';
 import { PrimeIcons } from '@primevue/core/api';
 import { notificationsApi } from '@/main';
@@ -16,7 +15,7 @@ const toast = useToast();
 const { t, d } = useI18n();
 const confirm = useConfirm();
 
-const notifications = ref<Notification[]>([exampleNotification, exampleNotification, exampleNotification]);
+const notifications = ref<Notification[]>([]);
 
 const notifCount = ref(0);
 const sorted = (r: Notification[]) => r.sort((a, b) => -((a.date > b.date) ? 1 : ((b.date > a.date) ? -1 : 0)))

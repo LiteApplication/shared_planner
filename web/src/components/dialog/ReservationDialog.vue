@@ -1,33 +1,33 @@
 <template>
     <Dialog modal v-model:visible="visibleModel" :header="title" id="reservation-dialog">
         <p class="text-surface-500 dark:text-surface-400 block mb-8">{{ description }}</p>
-        <div class="flex flex-col gap-6 mb-8">
-            <FloatLabel v-if="showUsers">
+        <div class="flex flex-col gap-2 mb-8">
+            <IftaLabel v-if="showUsers">
                 <Select v-model="selectedUserModel" :options="users" option-label="full_name" fluid input-id="user"
                     :empty-message="$t('admin.reservations.no_user_selected')" />
                 <label for="user">{{ $t('message.reservation.user') }}</label>
-            </FloatLabel>
-            <FloatLabel v-if="showDate">
-                <DatePicker v-model="dateModel" fluid input-id="date" date-format="dd-mm-yy"
+            </IftaLabel>
+            <IftaLabel v-if="showDate">
+                <DatePicker v-model="dateModel" fluid input-id="date" date-format="dd/mm/yy" class="w-full"
                     :invalid="!validateDates(shopData, startDate, endDate, setError, dayOfWeek, monday)" />
                 <label for="date">{{ $t('message.reservation.date') }}</label>
-            </FloatLabel>
-            <FloatLabel v-if="showTime">
-                <DatePicker v-model="startTimeModel" time-only fluid input-id="start_time"
-                    :invalid="!validateDates(shopData, startDate, endDate, setError, dayOfWeek, monday)" :step-minute="30" />
-
-                <label for="start_time">{{ $t('message.reservation.start_time') }}</label>
-            </FloatLabel>
-            <FloatLabel v-if="showTime">
-                <DatePicker v-model="endTimeModel" time-only fluid input-id="end_time"
-                    :invalid="!validateDates(shopData, startDate, endDate, setError, dayOfWeek, monday)" :step-minute="30" />
-
-                <label for="end_time">{{ $t('message.reservation.end_time') }}</label>
-            </FloatLabel>
-            <FloatLabel v-if="showValidated">
+            </IftaLabel>
+            <div class="flex flex-row gap-4 flex-wrap">
+                <IftaLabel v-if="showTime" class="flex-grow">
+                    <DatePicker v-model="startTimeModel" time-only fluid input-id="start_time" class="w-full"
+                        :invalid="!validateDates(shopData, startDate, endDate, setError, dayOfWeek, monday)" :step-minute="30" />
+                    <label for="start_time">{{ $t('message.reservation.start_time') }}</label>
+                </IftaLabel>
+                <IftaLabel v-if="showTime" class="flex-grow">
+                    <DatePicker v-model="endTimeModel" time-only fluid input-id="end_time" class="w-full"
+                        :invalid="!validateDates(shopData, startDate, endDate, setError, dayOfWeek, monday)" :step-minute="30" />
+                    <label for="end_time">{{ $t('message.reservation.end_time') }}</label>
+                </IftaLabel>
+            </div>
+            <IftaLabel v-if="showValidated">
                 <Checkbox v-model="validatedModel" input-id="validated" />
                 <label for="validated">{{ $t('message.reservation.validated') }}</label>
-            </FloatLabel>
+            </IftaLabel>
             <Message severity="error" v-if="errorMessage">{{ errorMessage }}</Message>
             <div class="flex gap-4 mt-1 flex-wrap">
                 <Button v-if="showDelete" class="w-full" @click="deleteClicked" severity="danger">{{ $t('message.reservation.delete') }}</Button>
@@ -46,7 +46,6 @@ import { computed, ref, type PropType } from 'vue';
 import { getMonday, getWeekDay, validateDates } from '@/utils';
 import { defineComponent } from 'vue';
 import Dialog from 'primevue/dialog';
-import FloatLabel from 'primevue/floatlabel';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
 import DatePicker from '../primevue/DatePicker';
@@ -54,6 +53,7 @@ import { useI18n } from 'vue-i18n';
 import { useConfirm } from 'primevue/useconfirm';
 import Select from 'primevue/select';
 import Checkbox from 'primevue/checkbox';
+import IftaLabel from 'primevue/iftalabel';
 
 const $t = useI18n().t;
 const confirm = useConfirm();
@@ -191,7 +191,7 @@ export default defineComponent({
     components: {
         // eslint-disable-next-line vue/no-reserved-component-names
         Dialog,
-        FloatLabel,
+        IftaLabel,
         DatePicker,
         // eslint-disable-next-line vue/no-reserved-component-names
         Button,

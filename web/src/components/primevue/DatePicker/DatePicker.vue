@@ -6,12 +6,13 @@ Function formatDate updated to include week number.
 
 <template>
     <span ref="container" :id="d_id" :class="cx('root')" :style="sx('root')" v-bind="ptmi('root')">
-        <InputText v-if="!inline" :ref="inputRef" :id="inputId" role="combobox" :class="[inputClass, cx('pcInput')]" :style="inputStyle"
-            :value="inputFieldValue" :placeholder="placeholder" :name="name" :invalid="invalid" :variant="variant" :fluid="fluid" :unstyled="unstyled"
-            autocomplete="off" aria-autocomplete="none" aria-haspopup="dialog" :aria-expanded="overlayVisible" :aria-controls="panelId"
-            :aria-labelledby="ariaLabelledby" :aria-label="ariaLabel" inputmode="none" :disabled="disabled" :readonly="!manualInput || readonly"
-            :tabindex="0" @input="onInput" @click="onInputClick" @focus="onFocus" @blur="onBlur" @keydown="onKeyDown" :pt="ptm('pcInput')" />
-        <slot v-if="showIcon && iconDisplay === 'button' && !inline" name="dropdownbutton">
+        <InputText v-if="!inline" :ref="inputRef" :id="inputId" role="combobox" :class="[inputClass, cx('pcInputText')]" :style="inputStyle"
+            :value="inputFieldValue" :placeholder="placeholder" :name="name" :size="size" :invalid="invalid" :variant="variant" :fluid="fluid"
+            :unstyled="unstyled" autocomplete="off" aria-autocomplete="none" aria-haspopup="dialog" :aria-expanded="overlayVisible"
+            :aria-controls="panelId" :aria-labelledby="ariaLabelledby" :aria-label="ariaLabel" inputmode="none" :disabled="disabled"
+            :readonly="!manualInput || readonly" :tabindex="0" @input="onInput" @click="onInputClick" @focus="onFocus" @blur="onBlur"
+            @keydown="onKeyDown" :pt="ptm('pcInputText')" />
+        <slot v-if="showIcon && iconDisplay === 'button' && !inline" name="dropdownbutton" :toggleCallback="onButtonClick">
             <button :class="cx('dropdown')" :disabled="disabled" @click="onButtonClick" type="button" :aria-label="$primevue.config.locale.chooseDate"
                 aria-haspopup="dialog" :aria-expanded="overlayVisible" :aria-controls="panelId" v-bind="ptm('dropdown')">
                 <slot name="dropdownicon" :class="icon">
@@ -38,8 +39,7 @@ Function formatDate updated to include week number.
                                 v-bind="ptm('calendar')">
                                 <div :class="cx('header')" v-bind="ptm('header')">
                                     <slot name="header"></slot>
-                                    <Button v-show="showOtherMonths ? groupIndex === 0 : false" :ref="previousButtonRef" :class="cx('pcPrevButton')"
-                                        :disabled="disabled"
+                                    <Button v-show="groupIndex === 0" :ref="previousButtonRef" :class="cx('pcPrevButton')" :disabled="disabled"
                                         :aria-label="currentView === 'year' ? $primevue.config.locale.prevDecade : currentView === 'month' ? $primevue.config.locale.prevYear : $primevue.config.locale.prevMonth"
                                         :unstyled="unstyled" @click="onPrevButtonClick" @keydown="onContainerButtonKeydown"
                                         v-bind="navigatorButtonProps" :pt="ptm('pcPrevButton')" data-pc-group-section="navigator">
@@ -85,8 +85,8 @@ Function formatDate updated to include week number.
                                                     1].value }} </slot>
                                         </span>
                                     </div>
-                                    <Button v-show="showOtherMonths ? (numberOfMonths === 1 ? true : groupIndex === numberOfMonths - 1) : false"
-                                        :ref="nextButtonRef" :class="cx('pcNextButton')" :disabled="disabled"
+                                    <Button v-show="numberOfMonths === 1 ? true : groupIndex === numberOfMonths - 1" :ref="nextButtonRef"
+                                        :class="cx('pcNextButton')" :disabled="disabled"
                                         :aria-label="currentView === 'year' ? $primevue.config.locale.nextDecade : currentView === 'month' ? $primevue.config.locale.nextYear : $primevue.config.locale.nextMonth"
                                         :unstyled="unstyled" @click="onNextButtonClick" @keydown="onContainerButtonKeydown"
                                         v-bind="navigatorButtonProps" :pt="ptm('pcNextButton')" data-pc-group-section="navigator">
@@ -144,7 +144,8 @@ Function formatDate updated to include week number.
                                                 })
                                                     " :data-p-today="date.today" :data-p-other-month="date.otherMonth"
                                                 data-pc-group-section="tablebodycell">
-                                                <span v-ripple :class="cx('day', { date })" @click="onDateSelect($event, date)" draggable="false"
+                                                <span v-if="showOtherMonths || !date.otherMonth" v-ripple :class="cx('day', { date })"
+                                                    @click="onDateSelect($event, date)" draggable="false"
                                                     @keydown="onDateCellKeydown($event, date, groupIndex)" :aria-selected="isSelected(date)"
                                                     :aria-disabled="!date.selectable" v-bind="ptm('day', {
                                                         context: {
@@ -351,7 +352,7 @@ Function formatDate updated to include week number.
 
 <script>
 import { absolutePosition, addStyle, find, findSingle, getAttribute, getFocusableElements, getIndex, getOuterWidth, isTouchDevice, relativePosition, setAttribute } from '@primeuix/utils/dom';
-import { isEmpty, localeComparator } from '@primeuix/utils/object';
+import { localeComparator } from '@primeuix/utils/object';
 import { ZIndex } from '@primeuix/utils/zindex';
 import { ConnectedOverlayScrollHandler, UniqueComponentId } from '@primevue/core/utils';
 import CalendarIcon from '@primevue/icons/calendar';
@@ -378,7 +379,7 @@ export default {
     name: 'DatePicker',
     extends: BaseDatePicker,
     inheritAttrs: false,
-    emits: ['show', 'hide', 'input', 'month-change', 'year-change', 'date-select', 'update:modelValue', 'today-click', 'clear-click', 'focus', 'blur', 'keydown'],
+    emits: ['show', 'hide', 'input', 'month-change', 'year-change', 'date-select', 'today-click', 'clear-click', 'focus', 'blur', 'keydown'],
     inject: {
         $pcFluid: { default: null }
     },
@@ -468,8 +469,6 @@ export default {
         this.bindMatchMediaListener();
 
         if (this.inline) {
-            this.overlay && this.overlay.setAttribute(this.attributeSelector, '');
-
             if (!this.disabled) {
                 this.preventFocus = true;
                 this.initFocusableCell();
@@ -515,20 +514,20 @@ export default {
     },
     methods: {
         isComparable() {
-            return this.modelValue != null && typeof this.modelValue !== 'string';
+            return this.d_value != null && typeof this.d_value !== 'string';
         },
         isSelected(dateMeta) {
             if (!this.isComparable()) {
                 return false;
             }
 
-            if (this.modelValue) {
+            if (this.d_value) {
                 if (this.isSingleSelection()) {
-                    return this.isDateEquals(this.modelValue, dateMeta);
+                    return this.isDateEquals(this.d_value, dateMeta);
                 } else if (this.isMultipleSelection()) {
                     let selected = false;
 
-                    for (let date of this.modelValue) {
+                    for (let date of this.d_value) {
                         selected = this.isDateEquals(date, dateMeta);
 
                         if (selected) {
@@ -538,9 +537,9 @@ export default {
 
                     return selected;
                 } else if (this.isRangeSelection()) {
-                    if (this.modelValue[1]) return this.isDateEquals(this.modelValue[0], dateMeta) || this.isDateEquals(this.modelValue[1], dateMeta) || this.isDateBetween(this.modelValue[0], this.modelValue[1], dateMeta);
+                    if (this.d_value[1]) return this.isDateEquals(this.d_value[0], dateMeta) || this.isDateEquals(this.d_value[1], dateMeta) || this.isDateBetween(this.d_value[0], this.d_value[1], dateMeta);
                     else {
-                        return this.isDateEquals(this.modelValue[0], dateMeta);
+                        return this.isDateEquals(this.d_value[0], dateMeta);
                     }
                 }
             }
@@ -551,33 +550,33 @@ export default {
             if (!this.isComparable()) return false;
 
             if (this.isMultipleSelection()) {
-                return this.modelValue.some((currentValue) => currentValue.getMonth() === month && currentValue.getFullYear() === this.currentYear);
+                return this.d_value.some((currentValue) => currentValue.getMonth() === month && currentValue.getFullYear() === this.currentYear);
             } else if (this.isRangeSelection()) {
-                if (!this.modelValue[1]) {
-                    return this.modelValue[0].getFullYear() === this.currentYear && this.modelValue[0].getMonth() === month;
+                if (!this.d_value[1]) {
+                    return this.d_value[0]?.getFullYear() === this.currentYear && this.d_value[0]?.getMonth() === month;
                 } else {
                     const currentDate = new Date(this.currentYear, month, 1);
-                    const startDate = new Date(this.modelValue[0].getFullYear(), this.modelValue[0].getMonth(), 1);
-                    const endDate = new Date(this.modelValue[1].getFullYear(), this.modelValue[1].getMonth(), 1);
+                    const startDate = new Date(this.d_value[0].getFullYear(), this.d_value[0].getMonth(), 1);
+                    const endDate = new Date(this.d_value[1].getFullYear(), this.d_value[1].getMonth(), 1);
 
                     return currentDate >= startDate && currentDate <= endDate;
                 }
             } else {
-                return this.modelValue.getMonth() === month && this.modelValue.getFullYear() === this.currentYear;
+                return this.d_value.getMonth() === month && this.d_value.getFullYear() === this.currentYear;
             }
         },
         isYearSelected(year) {
             if (!this.isComparable()) return false;
 
             if (this.isMultipleSelection()) {
-                return this.modelValue.some((currentValue) => currentValue.getFullYear() === year);
+                return this.d_value.some((currentValue) => currentValue.getFullYear() === year);
             } else if (this.isRangeSelection()) {
-                const start = this.modelValue[0] ? this.modelValue[0].getFullYear() : null;
-                const end = this.modelValue[1] ? this.modelValue[1].getFullYear() : null;
+                const start = this.d_value[0] ? this.d_value[0].getFullYear() : null;
+                const end = this.d_value[1] ? this.d_value[1].getFullYear() : null;
 
                 return start === year || end === year || (start < year && end > year);
             } else {
-                return this.modelValue.getFullYear() === year;
+                return this.d_value.getFullYear() === year;
             }
         },
         isDateEquals(value, dateMeta) {
@@ -701,7 +700,6 @@ export default {
             return validMin && validMax && validDate && validDay;
         },
         onOverlayEnter(el) {
-            el.setAttribute(this.attributeSelector, '');
             const styles = !this.inline ? { position: 'absolute', top: '0', left: '0' } : undefined;
 
             addStyle(el, styles);
@@ -733,16 +731,12 @@ export default {
             this.overlay = null;
         },
         onPrevButtonClick(event) {
-            if (this.showOtherMonths) {
-                this.navigationState = { backward: true, button: true };
-                this.navBackward(event);
-            }
+            this.navigationState = { backward: true, button: true };
+            this.navBackward(event);
         },
         onNextButtonClick(event) {
-            if (this.showOtherMonths) {
-                this.navigationState = { backward: false, button: true };
-                this.navForward(event);
-            }
+            this.navigationState = { backward: false, button: true };
+            this.navForward(event);
         },
         navBackward(event) {
             event.preventDefault();
@@ -981,7 +975,7 @@ export default {
             }
 
             if (this.isMultipleSelection() && this.isSelected(dateMeta)) {
-                let newValue = this.modelValue.filter((date) => !this.isDateEquals(date, dateMeta));
+                let newValue = this.d_value.filter((date) => !this.isDateEquals(date, dateMeta));
 
                 this.updateModel(newValue);
             } else {
@@ -1035,11 +1029,11 @@ export default {
             if (this.isSingleSelection()) {
                 modelVal = date;
             } else if (this.isMultipleSelection()) {
-                modelVal = this.modelValue ? [...this.modelValue, date] : [date];
+                modelVal = this.d_value ? [...this.d_value, date] : [date];
             } else if (this.isRangeSelection()) {
-                if (this.modelValue && this.modelValue.length) {
-                    let startDate = this.modelValue[0];
-                    let endDate = this.modelValue[1];
+                if (this.d_value && this.d_value.length) {
+                    let startDate = this.d_value[0];
+                    let endDate = this.d_value[1];
 
                     if (!endDate && date.getTime() >= startDate.getTime()) {
                         endDate = date;
@@ -1078,10 +1072,10 @@ export default {
                 value.setMonth(date.getMonth());
                 value.setDate(date.getDate());
             }
-            this.$emit('update:modelValue', value);
+            this.writeValue(value);
         },
         shouldSelectDate() {
-            if (this.isMultipleSelection()) return this.maxDateCount != null ? this.maxDateCount > (this.modelValue ? this.modelValue.length : 0) : true;
+            if (this.isMultipleSelection()) return this.maxDateCount != null ? this.maxDateCount > (this.d_value ? this.d_value.length : 0) : true;
             else return true;
         },
         isSingleSelection() {
@@ -1354,15 +1348,15 @@ export default {
             return hours;
         },
         validateTime(hour, minute, second, pm) {
-            let value = this.isComparable() ? this.modelValue : this.viewDate;
+            let value = this.isComparable() ? this.d_value : this.viewDate;
             const convertedHour = this.convertTo24Hour(hour, pm);
 
             if (this.isRangeSelection()) {
-                value = this.modelValue[1] || this.modelValue[0];
+                value = this.d_value[1] || this.d_value[0];
             }
 
             if (this.isMultipleSelection()) {
-                value = this.modelValue[this.modelValue.length - 1];
+                value = this.d_value[this.d_value.length - 1];
             }
 
             const valueDateString = value ? value.toDateString() : null;
@@ -1490,14 +1484,14 @@ export default {
         },
         updateModelTime() {
             this.timePickerChange = true;
-            let value = this.isComparable() ? this.modelValue : this.viewDate;
+            let value = this.isComparable() ? this.d_value : this.viewDate;
 
             if (this.isRangeSelection()) {
-                value = this.modelValue[1] || this.modelValue[0];
+                value = this.d_value[1] || this.d_value[0];
             }
 
             if (this.isMultipleSelection()) {
-                value = this.modelValue[this.modelValue.length - 1];
+                value = this.d_value[this.d_value.length - 1];
             }
 
             value = value ? new Date(value.getTime()) : new Date();
@@ -1513,12 +1507,12 @@ export default {
             value.setSeconds(this.currentSecond);
 
             if (this.isRangeSelection()) {
-                if (this.modelValue[1]) value = [this.modelValue[0], value];
+                if (this.d_value[1]) value = [this.d_value[0], value];
                 else value = [value, null];
             }
 
             if (this.isMultipleSelection()) {
-                value = [...this.modelValue.slice(0, -1), value];
+                value = [...this.d_value.slice(0, -1), value];
             }
 
             this.updateModel(value);
@@ -1563,9 +1557,6 @@ export default {
         },
         updateCurrentMetaData() {
             const viewDate = this.viewDate;
-
-
-
 
             this.currentMonth = viewDate.getMonth();
             this.currentYear = viewDate.getFullYear();
@@ -1764,6 +1755,11 @@ export default {
 
             if (this.currentView === 'month') {
                 day = 1;
+            }
+
+            if (this.currentView === 'year') {
+                day = 1;
+                month = 1;
             }
 
             for (iFormat = 0; iFormat < format.length; iFormat++) {
@@ -2397,7 +2393,10 @@ export default {
                                 let spanIndex = null;
 
                                 for (let i = 0; i < focusableElements.length; i++) {
-                                    if (focusableElements[i].tagName === 'SPAN') spanIndex = i;
+                                    if (focusableElements[i].tagName === 'SPAN') {
+                                        spanIndex = i;
+                                        break;
+                                    }
                                 }
 
                                 focusableElements[spanIndex].focus();
@@ -2458,9 +2457,10 @@ export default {
         },
         onBlur(event) {
             this.$emit('blur', { originalEvent: event, value: event.target.value });
+            this.formField.onBlur?.();
 
             this.focused = false;
-            event.target.value = this.formatValue(this.modelValue);
+            event.target.value = this.formatValue(this.d_value);
         },
         onKeyDown(event) {
             if (event.code === 'ArrowDown' && this.overlay) {
@@ -2557,14 +2557,14 @@ export default {
                     for (let i = 0; i < responsiveOptions.length; i++) {
                         let { breakpoint, numMonths } = responsiveOptions[i];
                         let styles = `
-                            .p-datepicker-panel[${this.attributeSelector}] .p-datepicker-calendar:nth-child(${numMonths}) .p-datepicker-next-button {
+                            .p-datepicker-panel[${this.$attrSelector}] .p-datepicker-calendar:nth-child(${numMonths}) .p-datepicker-next-button {
                                 display: inline-flex;
                             }
                         `;
 
                         for (let j = numMonths; j < this.numberOfMonths; j++) {
                             styles += `
-                                .p-datepicker-panel[${this.attributeSelector}] .p-datepicker-calendar:nth-child(${j + 1}) {
+                                .p-datepicker-panel[${this.$attrSelector}] .p-datepicker-calendar:nth-child(${j + 1}) {
                                     display: none;
                                 }
                             `;
@@ -2590,7 +2590,7 @@ export default {
     },
     computed: {
         viewDate() {
-            let propValue = this.modelValue;
+            let propValue = this.d_value;
 
             if (propValue && Array.isArray(propValue)) {
                 if (this.isRangeSelection()) {
@@ -2617,7 +2617,7 @@ export default {
             }
         },
         inputFieldValue() {
-            return this.formatValue(this.modelValue);
+            return this.formatValue(this.d_value);
         },
         months() {
             let months = [];
@@ -2788,17 +2788,11 @@ export default {
         monthNames() {
             return this.$primevue.config.locale.monthNames;
         },
-        attributeSelector() {
-            return UniqueComponentId();
-        },
         switchViewButtonDisabled() {
             return this.numberOfMonths > 1 || this.disabled;
         },
         panelId() {
             return this.d_id + '_panel';
-        },
-        hasFluid() {
-            return isEmpty(this.fluid) ? !!this.$pcFluid : this.fluid;
         }
     },
     components: {
