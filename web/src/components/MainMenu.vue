@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Menubar from 'primevue/menubar';
-import { defineComponent, onMounted, ref } from 'vue';
+import { computed, defineComponent, onMounted, ref } from 'vue';
 import { PrimeIcons } from '@primevue/core/api';
 import { useI18n } from 'vue-i18n';
 import { authApi, notificationsApi } from '@/main';
@@ -74,12 +74,16 @@ const items = ref<any>([
         ]
     }]);
 
+// Get browser preference
+const prefersDarkScheme = computed(() => window.matchMedia("(prefers-color-scheme: dark)").matches);
+
 </script>
 
 <template>
     <Menubar :model="items" class="m-4">
         <template #start>
-            <img src="../assets/logo.png" alt="Logo" class="p-mr-2 h-12" id="logo" />
+            <img src="../assets/logo-dark.png" alt="Logo" class="p-mr-2 h-12" id="logo" v-if="prefersDarkScheme" />
+            <img src="../assets/logo-light.png" alt="Logo" class="p-mr-2 h-12" id="logo" v-else />
         </template>
         <template #item="{ item, props, hasSubmenu }">
             <div v-if="!item.adminRequired || isAdmin">

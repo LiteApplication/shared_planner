@@ -7,8 +7,8 @@
             <Toolbar>
                 <template #start>
                     <div class="flex gap-2">
-                        <Button label="Add" icon="pi pi-plus" @click="addUser" />
-                        <Button label="Delete" icon="pi pi-trash" class="p-button-danger" @click="confirmDeleteSelectedUsers"
+                        <Button :label="$t('message.add')" icon="pi pi-plus" @click="addUser" />
+                        <Button :label="$t('message.delete')" icon="pi pi-trash" class="p-button-danger" @click="confirmDeleteSelectedUsers"
                             :disabled="!selectedUsers.length" />
                     </div>
                 </template>
@@ -17,7 +17,7 @@
                         <InputIcon>
                             <i class="pi pi-search" />
                         </InputIcon>
-                        <InputText v-model="filters['global'].value" placeholder="Keyword Search" />
+                        <InputText v-model="filters['global'].value" :placeholder="$t('message.search')" />
                     </IconField>
                 </template>
             </Toolbar>

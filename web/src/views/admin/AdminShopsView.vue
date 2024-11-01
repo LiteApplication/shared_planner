@@ -17,7 +17,7 @@
                         <template #header>
                             <div class="flex justify-between w-full">
                                 <h2 class="text-lg font-bold">{{ $t('admin.shop.informations') }}</h2>
-                                <Button label="Save" icon="pi pi-save" type="submit" />
+                                <Button :label="$t('message.save')" icon="pi pi-save" type="submit" />
                             </div>
                         </template>
                         <div class="flex flex-col gap-8 pt-6">

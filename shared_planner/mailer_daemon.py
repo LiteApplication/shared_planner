@@ -108,11 +108,11 @@ def send_mail(name: str, email: str, template: str, data: dict):
     msg["To"] = f"{name} <{email}>"
     msg["Subject"] = subject
 
-    img = MIMEImage(LOGO_DATA, name="logo.png")
+    img = MIMEImage(LOGO_DATA, name="magev.png")
     # The content ID is used to reference the image in the HTML content
-    content_id = "logo.png@" + get("base_domain").value.replace("https://", "").replace(
-        "http://", ""
-    )
+    content_id = "magev.png@" + get("base_domain").value.replace(
+        "https://", ""
+    ).replace("http://", "")
     img.add_header("Content-ID", content_id)
     msg.attach(img)
 

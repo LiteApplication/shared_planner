@@ -61,6 +61,7 @@ def serve_my_app(rest_of_path: str):
 
     if rest_of_path == "" or rest_of_path == "/" or rest_of_path == ".":
         return FileResponse(BASE_DIR / "index.html")
+
     if (BASE_DIR / rest_of_path).exists():
         return FileResponse(BASE_DIR / rest_of_path)
     return FileResponse(BASE_DIR / "index.html")

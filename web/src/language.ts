@@ -61,6 +61,10 @@ const messages = {
             set_password: 'Set password',
             mail_sent: 'An email has been sent to you with a link to verify your email address.',
             info: "Information",
+            add: 'Add',
+            edit: 'Edit',
+            delete: 'Delete',
+            search: 'Search',
 
             date: 'Date',
             time: 'Time',
@@ -126,6 +130,7 @@ const messages = {
                 or_day: 'Day',
                 or_start: 'Start time',
                 or_end: 'End time',
+                or_updated: 'The open range has been modified successfully.',
                 or_deleted: 'The open range has been deleted successfully.'
             },
             settings: {
@@ -396,6 +401,10 @@ const messages = {
             set_password: 'Définir le mot de passe',
             mail_sent: 'Un email vous a été envoyé avec un lien pour vérifier votre adresse email.',
             info: "Information",
+            add: 'Ajouter',
+            edit: 'Modifier',
+            delete: 'Supprimer',
+            search: 'Rechercher',
 
 
             date: 'Date',
@@ -418,8 +427,8 @@ const messages = {
                 confirm_delete: 'Êtes-vous sûr de vouloir supprimer cette réservation ?\nLes administrateurs seront informés pour tenter de trouver un remplaçant.\nSi vous ne souhaitez pas supprimer, cliquez sur \'Annuler\'',
             },
             shops: {
-                description: 'Ouvert de <br/><b>{from}</b> à <br/><b>{until}</b>.<br><i>{volunteers} bénévoles nécessaires.</i><br/>{description}',
-                description_plain: 'Ouvert de {from} à {until}. {volunteers} bénévoles nécessaires.\n{description}',
+                description: 'Ouvert de <br/><b>{from}</b> à <br/><b>{until}</b>.<br><i>{volunteers} bénévoles maximum à chaque créneau horaire.</i><br/>{description}',
+                description_plain: 'Ouvert de {from} à {until}. {volunteers} bénévoles maximum.\n{description}',
                 open: 'Magasin ouvert',
                 book: 'Réserver',
                 week_format: '\'Semaine \'WW\', \'yy',
@@ -462,6 +471,7 @@ const messages = {
                 or_day: 'Jour',
                 or_start: 'Heure de début',
                 or_end: 'Heure de fin',
+                or_updated: 'La plage horaire a été modifiée avec succès.',
                 or_deleted: 'La plage horaire a été supprimée avec succès.'
             },
             settings: {
