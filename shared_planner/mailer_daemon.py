@@ -33,7 +33,7 @@ SUBJECTS = {
     "notification.reservation_cancelled": "[MAGEV] Annulation de votre réservation",
     "notification.reservation_reassigned_old": "[MAGEV] Réservation supprimée",
     "notification.reservation_reassigned_new": "[MAGEV] Nouvelle réservation",
-    "first_mail": "[MAGEV] Bienvenue sur Shared Planner",
+    "first_mail": "[MAGEV] Bienvenue sur notre plateforme de réservation",
     "notification.admin.reservation_created": "[ADMIN] Nouvelle réservation",
     "notification.admin.reservation_modified": "[ADMIN] Modification de réservation",
     "notification.admin.reservation_cancelled": "[ADMIN] Annulation de réservation",

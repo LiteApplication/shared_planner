@@ -103,8 +103,7 @@ function onLoadShop(shop: ShopWithOpenRange) {
                     );
                     const result: Task[] = [];
                     // Copy each open range volunteer times
-                    result.push(...open_ranges);
-                    for (let i = 1; i < shop.volunteers; i++) {
+                    for (let i = 0; i < shop.volunteers; i++) {
                         result.push(...open_ranges.map(
                             (range: Task) => ({
                                 ...range, // Shallow copy
