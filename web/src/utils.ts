@@ -113,8 +113,7 @@ function validateDates(shopData: ShopWithOpenRange | Shop | null | undefined, st
         const open_ranges = shopData?.open_ranges.filter(
             (range: OpenRange) => {
                 const rangeDay = getDateOfWeekDay(monday, range.day).getTime();
-                const rangeDayPlusOne = getDateOfWeekDay(monday, range.day + 1).getTime();
-                return range.day === day && rangeDayPlusOne >= shopStart && rangeDay <= shopEnd;
+                return range.day === day && rangeDay >= shopStart && rangeDay <= shopEnd;
             }
         );
 

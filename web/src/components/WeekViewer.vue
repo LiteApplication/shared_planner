@@ -86,21 +86,32 @@ function onLoadShop(shop: ShopWithOpenRange) {
             displayedTasks.value = planning.map(
                 (day_planning, index) => {
 
-                    const result: Task[] = shop.open_ranges.filter(
+                    const open_ranges: Task[] = shop.open_ranges.filter(
                         (range: OpenRange) => (index === range.day) && (weekStart + days(index) >= shopStart) && (weekStart + days(index) <= shopEnd)
                     ).map(
                         (range: OpenRange) => ({
                             start_time: timeToMinutes(range.start_time),
                             end_time: timeToMinutes(range.end_time),
-                            color: 'gray',
+                            color: 'rgb(127, 36, 180)',
                             title: t('message.shops.open'),
-                            description: `${reformatTime(range.start_time)} - ${reformatTime(range.end_time)}`,
+                            description: "",
                             id: null,
                             _row: undefined,
                             cursor: 'arrow',
                             status: -3
                         })
                     );
+                    const result: Task[] = [];
+                    // Copy each open range volunteer times
+                    result.push(...open_ranges);
+                    for (let i = 1; i < shop.volunteers; i++) {
+                        result.push(...open_ranges.map(
+                            (range: Task) => ({
+                                ...range, // Shallow copy
+                            })
+                        ));
+                    }
+
 
 
                     result.push(...day_planning.map(
@@ -363,7 +374,7 @@ export default defineComponent({
 }
 
 #open {
-    background-color: gray;
+    background-color: rgb(127, 36, 180);
 }
 
 #booked {

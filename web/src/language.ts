@@ -87,7 +87,7 @@ const messages = {
             },
             shops: {
                 description: 'Gift wrapping operation from\n{from} to\n{until}.\n,{volunteers} volunteers maximum on each slot.',
-                open: 'Shop open',
+                open: 'Available',
                 book: 'Book',
                 week_format: '\'Week \'WW\', \'yy',
                 select: 'Please select a shop',
@@ -427,7 +427,7 @@ const messages = {
             },
             shops: {
                 description: 'Opération paquets cadeaux du\n{from} au\n{until}.\n{volunteers} bénévoles maximum sur chaque créneau.',
-                open: 'Magasin ouvert',
+                open: 'Disponible',
                 book: 'Réserver',
                 week_format: '\'Semaine \'WW\', \'yy',
                 select: 'Veuillez sélectionner un magasin',

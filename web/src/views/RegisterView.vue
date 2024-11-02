@@ -23,7 +23,15 @@ const loading = ref(false);
 const mail_sent = ref(false);
 
 const groups = [
-    { name: 'MAGEV', code: 'MAGEV' }, { name: 'TOTAL', code: 'TOTAL' }, { name: 'ADA', code: 'ADA' }, { name: 'CBRE', code: 'CBRE' }, { name: 'SalesForce', code: 'SalesForce' }, { name: 'ABEILLE', code: 'ABEILLE' },
+    { name: 'MAGEV', code: 'MAGEV' },
+    { name: 'TOTAL', code: 'TOTAL' },
+    { name: 'ADA', code: 'ADA' },
+    { name: 'CBRE', code: 'CBRE' },
+    { name: 'SalesForce', code: 'SalesForce' },
+    { name: 'ABEILLE', code: 'ABEILLE' },
+    { name: "Diffuz", code: "Diffuz" },
+    { name: "France Bénévolat", code: "France Bénévolat" },
+    { name: "Bénévolt", code: "Bénévolt" },
 ];
 
 const onSubmit = async () => {

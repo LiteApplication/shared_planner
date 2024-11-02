@@ -90,21 +90,27 @@ export default defineComponent({
             const sorted: Task[] = [...this.tasks].sort((a, b) => a.start_time - b.start_time);
             // Initialize an array to keep track of the end times of the rows
             let rows: number[] = [];
+            let availableRows = 0;
 
             // Iterate through the sorted tasks
             sorted.forEach((task) => {
                 let assigned = false;
+                if (task.id === null) {
+                    task._row = availableRows;
+                    availableRows++;
+                    assigned = true;
+                } else {
+                    // Try to assign the task to an existing row
+                    for (let i = 0; i < sorted.length; i++) {
 
-                // Try to assign the task to an existing row
-                for (let i = 0; i < sorted.length; i++) {
-                    if (task.start_time >= rows[i]) {
-                        task._row = i;
-                        rows[i] = task.end_time;
-                        assigned = true;
-                        break;
+                        if (task.start_time >= rows[i]) {
+                            task._row = i;
+                            rows[i] = task.end_time;
+                            assigned = true;
+                            break;
+                        }
                     }
                 }
-
                 // If no existing row is available, create a new row
                 if (!assigned) {
                     task._row = rows.length;
@@ -131,6 +137,16 @@ export default defineComponent({
             const heightPercent = ((taskEnd - taskStart) / totalMinutes) * 100;
 
             const marginLeft = task._row;
+            if (task.id === null) {
+                return {
+                    top: `${topPercent}%`,
+                    height: `${heightPercent}%`,
+                    backgroundColor: task.color,
+                    marginLeft: `${marginLeft}rem`,
+                    cursor: task.cursor,
+                    zIndex: -1
+                };
+            }
 
             return {
                 top: `${topPercent}%`,
