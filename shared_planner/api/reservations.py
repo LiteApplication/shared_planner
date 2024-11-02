@@ -647,7 +647,8 @@ def get_all_data(api_key: str) -> str:
                     "user_group": res.user.group,
                     "user_admin": res.user.admin,
                     "start_time": res.start_time,
-                    "duration": (res.end_time - res.start_time).total_seconds() // 60,
+                    "duration": (res.end_time - res.start_time).total_seconds()
+                    / (60 * 60),  # in hours
                 }
             )
     value = output.getvalue()
