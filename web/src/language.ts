@@ -86,8 +86,7 @@ const messages = {
                 confirm_delete: 'Are you sure you want to delete this reservation?\nThe admins will be notified to try and find a replacement.\nIf you do not want to delete it, click \'Cancel\'',
             },
             shops: {
-                description: 'Open from <br/><b>{from}</b> to <br/><b>{until}</b>.<br><i>{volunteers} volunteers needed.</i><br/>{description}',
-                description_plain: 'Open from {from} to {until}. {volunteers} volunteers needed.\n{description}',
+                description: 'Gift wrapping operation from\n{from} to\n{until}.\n,{volunteers} volunteers maximum on each slot.',
                 open: 'Shop open',
                 book: 'Book',
                 week_format: '\'Week \'WW\', \'yy',
@@ -260,8 +259,8 @@ const messages = {
                 end_before_start: 'The end time must be after the start time',
                 too_short: 'The time range must be at least {min_time} minutes',
                 too_long: 'The time range must be at most {max_time} minutes',
-                not_open_day: 'The shop is not open on this day',
-                not_open_time: 'The shop is not open at this time',
+                not_open_day: 'The shop does not need volunteers on this day',
+                not_open_time: 'The shop does not need volunteers at this time',
 
                 unknown: 'An unknown error happened while trying to book this time range.',
 
@@ -385,7 +384,7 @@ const messages = {
             email: 'Email',
             password: 'Mot de passe',
             confirm_password: 'Confirmer le mot de passe',
-            full_name: 'Nom complet',
+            full_name: 'Prénom et nom',
             group: 'Groupe',
             logout: 'Déconnexion',
             to_register: 'Vous n\'avez pas de compte ? Inscrivez-vous',
@@ -427,8 +426,7 @@ const messages = {
                 confirm_delete: 'Êtes-vous sûr de vouloir supprimer cette réservation ?\nLes administrateurs seront informés pour tenter de trouver un remplaçant.\nSi vous ne souhaitez pas supprimer, cliquez sur \'Annuler\'',
             },
             shops: {
-                description: 'Ouvert de <br/><b>{from}</b> à <br/><b>{until}</b>.<br><i>{volunteers} bénévoles maximum à chaque créneau horaire.</i><br/>{description}',
-                description_plain: 'Ouvert de {from} à {until}. {volunteers} bénévoles maximum.\n{description}',
+                description: 'Opération paquets cadeaux du\n{from} au\n{until}.\n{volunteers} bénévoles maximum sur chaque créneau.',
                 open: 'Magasin ouvert',
                 book: 'Réserver',
                 week_format: '\'Semaine \'WW\', \'yy',
@@ -569,7 +567,7 @@ const messages = {
                 user_not_found: 'Utilisateur non trouvé',
                 invalid_password: 'Identifiants invalides',
                 email_exists: 'L\'email existe déjà',
-                full_name_too_short: 'Nom complet trop court',
+                full_name_too_short: 'Noms trop courts',
                 email_invalid: 'Email invalide',
                 password_too_short: 'Le mot de passe doit comporter au moins 8 caractères',
                 password_match: 'Les mots de passe ne correspondent pas',
@@ -603,8 +601,8 @@ const messages = {
                 end_before_start: 'L\'heure de fin doit être après l\'heure de début',
                 too_short: 'La plage horaire doit être d\'au moins {min_time} minutes',
                 too_long: 'La plage horaire doit être au maximum de {max_time} minutes',
-                not_open_day: 'Le magasin n\'est pas ouverte ce jour-là',
-                not_open_time: 'Le magasin n\'est pas ouverte à cette heure',
+                not_open_day: 'Pas de besoin en bénévolat ce jour-là',
+                not_open_time: 'Pas de besoin en bénévolat à cette heure',
 
                 unknown: 'Une erreur inconnue est survenue lors de la réservation de cette plage horaire.',
 

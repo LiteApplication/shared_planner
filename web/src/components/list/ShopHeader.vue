@@ -15,7 +15,7 @@
                     <Skeleton width=" 8rem" height="1rem" v-else></Skeleton>
                 </div>
                 <p class="text-s font-normal mt-2" v-if="shop.id != -1">
-                    {{ $t('message.shops.description_plain', {
+                    {{ $t('message.shops.description', {
                         from: formatDate(shop.available_from, $t('date_locale')), until: formatDate(shop.available_until, $t('date_locale')), volunteers:
                             shop.volunteers
                     }) }}
@@ -26,7 +26,7 @@
                 <slot name="action"> </slot>
             </div>
         </div>
-        <p v-if="shop.id != -1">{{ shop.description }}</p>
+        <p class=" text-s font-normal text-red-500 whitespace-pre-line" v-if="shop.id != -1">{{ shop.description }}</p>
         <Skeleton class="mt-2" width="50%" height="1rem" v-else></Skeleton>
     </div>
 </template>

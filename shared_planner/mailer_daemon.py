@@ -26,14 +26,14 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "..", "templates")
 
 SUBJECTS = {
-    "password_reset": "Réinitialisation de mot de passe",
-    "notification.reservation_created": "Confirmation de réservation",
-    "notification.reminder": "Rappel de réservation",
-    "notification.reservation_modified": "Modification de réservation",
-    "notification.reservation_cancelled": "Annulation de réservation",
-    "notification.reservation_reassigned_old": "Réservation supprimée",
-    "notification.reservation_reassigned_new": "Nouvelle réservation",
-    "first_mail": "Bienvenue sur Shared Planner",
+    "password_reset": "[MAGEV] Réinitialisation de mot de passe",
+    "notification.reservation_created": "[MAGEV] Confirmation de votre réservation à notre opération paquets cadeaux",
+    "notification.reminder": "[MAGEV] Rappel de réservation",
+    "notification.reservation_modified": "[MAGEV] Modification de votre réservation",
+    "notification.reservation_cancelled": "[MAGEV] Annulation de votre réservation",
+    "notification.reservation_reassigned_old": "[MAGEV] Réservation supprimée",
+    "notification.reservation_reassigned_new": "[MAGEV] Nouvelle réservation",
+    "first_mail": "[MAGEV] Bienvenue sur Shared Planner",
     "notification.admin.reservation_created": "[ADMIN] Nouvelle réservation",
     "notification.admin.reservation_modified": "[ADMIN] Modification de réservation",
     "notification.admin.reservation_cancelled": "[ADMIN] Annulation de réservation",
@@ -43,8 +43,6 @@ SUBJECTS = {
 with open(os.path.join(TEMPLATE_DIR, "mail_shell.html"), "r") as file:
     MAIL_BASE = file.read()
 
-with open(os.path.join(TEMPLATE_DIR, "logo.png"), "rb") as file:
-    LOGO_DATA = file.read()
 
 mail_queue = Queue()
 # Set locale to French
@@ -108,22 +106,12 @@ def send_mail(name: str, email: str, template: str, data: dict):
     msg["To"] = f"{name} <{email}>"
     msg["Subject"] = subject
 
-    img = MIMEImage(LOGO_DATA, name="magev.png")
-    # The content ID is used to reference the image in the HTML content
-    content_id = "magev.png@" + get("base_domain").value.replace(
-        "https://", ""
-    ).replace("http://", "")
-    img.add_header("Content-ID", content_id)
-    msg.attach(img)
-
     # If the data contains an ICS event, create the ICS file and attach it to the email
     if "ics" in data:
         ics_content = create_ics(**data["ics"])
         ics = MIMEText(ics_content, "calendar; method=REQUEST")
         ics.add_header("Content-Disposition", "attachment; filename=invitation.ics")
         msg.attach(ics)
-
-    template_content = template_content.replace("{logo}", "cid:" + content_id)
 
     msg.attach(MIMEText(template_content, "html"))
 
