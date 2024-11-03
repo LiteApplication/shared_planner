@@ -159,6 +159,7 @@ const messages = {
                     email_admin_reservation_modified: "Email admins on reservation modification",
                     email_admin_reservation_cancelled: "Email admins on reservation cancel",
                     email_admin_new_user_created: "Email admins on new user creation",
+                    block_all_emails: "Block all emails",
                     notify_for_admin_actions: "Notify admins for their own actions",
                 },
                 description: {
@@ -182,6 +183,7 @@ const messages = {
                     email_admin_reservation_modified: "When enabled, admins will receive a notification when a user modifies their reservation.",
                     email_admin_reservation_cancelled: "When enabled, admins will receive a notification when a user cancels their reservation.",
                     email_admin_new_user_created: "When enabled, admins will receive a notification when a new user is created.",
+                    block_all_emails: "When enabled, no emails will be sent by the server. This is useful for testing.",
                     notify_for_admin_actions: "When enabled, all the admins will receive a notification when one of them creates, modifies or deletes a reservation.",
                 }
 
@@ -500,6 +502,7 @@ const messages = {
                     email_admin_reservation_cancelled: "Envoyer un email aux admins lors de l'annulation d'une réservation",
                     email_admin_new_user_created: "Envoyer un email aux admins lors de la création d'un nouvel utilisateur",
                     notify_for_admin_actions: "Notifier les admins pour leurs propres actions",
+                    block_all_emails: "Bloquer tous les emails",
                     api_key: "Clé API",
                 },
                 description: {
@@ -524,6 +527,7 @@ const messages = {
                     email_admin_reservation_cancelled: "Lorsque cette option est activée, les admins recevront une notification lorsqu'un utilisateur annule sa réservation.",
                     email_admin_new_user_created: "Lorsque cette option est activée, les admins recevront une notification lorsqu'un nouvel utilisateur est créé.",
                     notify_for_admin_actions: "Lorsque cette option est activée, tous les admins recevront une notification lorsque l'un d'eux crée, modifie ou supprime une réservation.",
+                    block_all_emails: "Lorsque cette option est activée, aucun email ne sera envoyé par le serveur. Cela est utile pour les tests.",
                     api_key: "Clé utilisée pour obtenir toutes les réservations dans le document Google Sheets. Cette clé doit être une longue chaîne de caractères générée aléatoirement et ne doit pas être partagée publiquement car elle permet d'accéder à toutes les réservations.",
                 }
 

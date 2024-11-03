@@ -115,6 +115,10 @@ def send_mail(name: str, email: str, template: str, data: dict):
 
     msg.attach(MIMEText(template_content, "html"))
 
+    if get("block_all_emails").asBool():
+        print(f"Email to {email} blocked by setting")
+        return
+
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()

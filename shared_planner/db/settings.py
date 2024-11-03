@@ -73,6 +73,7 @@ DEFAULTS = {
         True,
         True,
     ),  # Should actions performed by admins be notified to other admins?
+    "block_all_emails": (False, True),  # Block all emails
     "api_key": ("", True),  # API key to access the full data report
 }
 

@@ -126,8 +126,7 @@ def check_overlap(
     end_time = start_time + duration
     for reservation in shop.reservations:
         if (
-            start_time <= reservation.start_time < end_time
-            or start_time < reservation.end_time <= end_time
+            start_time < reservation.end_time and end_time > reservation.start_time
         ) and reservation.id != exclude_res_id:
             overlap_check.append((1, reservation.start_time))
             overlap_check.append((-1, reservation.end_time))
