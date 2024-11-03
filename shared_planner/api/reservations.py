@@ -125,13 +125,18 @@ def check_overlap(
     overlap_check = []
     end_time = start_time + duration
     for reservation in shop.reservations:
-        if (
-            start_time < reservation.end_time and end_time > reservation.start_time
-        ) and reservation.id != exclude_res_id:
-            overlap_check.append((1, reservation.start_time))
-            overlap_check.append((-1, reservation.end_time))
-            if reservation.user_id == user.id:
-                return False
+        if reservation.id == exclude_res_id:
+            continue
+        if reservation.start_time >= end_time or reservation.end_time <= start_time:
+            continue
+        overlap_check.append((1, reservation.start_time))
+        overlap_check.append((-1, reservation.end_time))
+        if reservation.user_id == user.id:
+            return False
+
+    # Count the reservation that we want to add too
+    overlap_check.append((+1, start_time))
+    overlap_check.append((-1, end_time))
 
     overlap_check.sort(key=lambda x: x[1])
     overlap_count = 0
@@ -139,6 +144,7 @@ def check_overlap(
         overlap_count += change
         if overlap_count > shop.volunteers:
             return False
+        print("overlap_count", overlap_count)
     return True
 
 
