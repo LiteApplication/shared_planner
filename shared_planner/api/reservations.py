@@ -144,7 +144,6 @@ def check_overlap(
         overlap_count += change
         if overlap_count > shop.volunteers:
             return False
-        print("overlap_count", overlap_count)
     return True
 
 
