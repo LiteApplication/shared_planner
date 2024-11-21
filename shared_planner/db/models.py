@@ -144,12 +144,22 @@ class Token(SQLModel, table=True):
     def is_expired(self) -> bool:
         return self.expires_at < datetime.datetime.now()
 
+    def renew(self):
+        from shared_planner.db.settings import get  # circular import
+
+        self.expires_at = datetime.datetime.now() + datetime.timedelta(
+            hours=get("token_validity").asInt()
+        )
+
     @staticmethod
     def create_token(user: User) -> "Token":
+        from shared_planner.db.settings import get  # circular import
+
         return Token(
             user=user,
             access_token=secrets.token_urlsafe(32),
-            expires_at=datetime.datetime.now() + datetime.timedelta(days=1),
+            expires_at=datetime.datetime.now()
+            + datetime.timedelta(hours=get("token_validity").asInt()),
         )
 
 

@@ -1,9 +1,24 @@
+from sqlalchemy import delete
+from sqlmodel import select
 from shared_planner.db.models import Setting
 from shared_planner.db.session import SessionLock
 
 
 # key: (value, private?)
 DEFAULTS = {
+    "token_validity": (24, False),  # Time in hours for a token to be valid
+    "cleanup_reminders_days": (
+        1,
+        True,
+    ),  # Number of days to keep reminders after they expire
+    "cleanup_notifications_days": (
+        30,
+        True,
+    ),
+    "cleanup_notifications_days_admin": (
+        -1,
+        True,
+    ),  # Number of days to keep notifications after they expire (admin)
     "email_reservation_created": (
         True,
         False,
@@ -80,10 +95,29 @@ DEFAULTS = {
 
 def init_settings():
     with SessionLock() as session:
-        session.query(Setting).delete()
+        query = select(Setting)
+        results = session.exec(query).all()
+
+        current_settings = {setting.key: setting for setting in results}
+
+        delete_all = delete(Setting)
+        session.exec(delete_all)
+
         settings = [
-            Setting(key=k, value=str(v), private=p) for k, (v, p) in DEFAULTS.items()
+            Setting(key=key, value=value, private=private)
+            for key, (value, private) in DEFAULTS.items()
         ]
+
+        for setting in settings:
+            if setting.key in current_settings:
+                print(f"Setting {setting.key} already exists, keeping value")
+                setting.value = current_settings[setting.key].value
+
+        for setting in settings:
+            if setting.key not in current_settings:
+                print(
+                    f"Setting {setting.key} not found, adding default value ({setting.value})"
+                )
 
         session.add_all(settings)
         session.commit()

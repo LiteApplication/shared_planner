@@ -6,6 +6,9 @@
         v-model:expandedRows="expandedRows">
         <template #header>
             <Toolbar>
+                <template #start>
+                    <Button label="Optimize Database" icon="pi pi-cog" class="p-button-success" @click="optimizeDatabase" />
+                </template>
                 <template #end>
                     <IconField>
                         <InputIcon>
@@ -53,6 +56,7 @@ import DataTable from 'primevue/datatable';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
+import Button from 'primevue/button';
 import { FilterMatchMode } from '@primevue/core/api';
 import { defineComponent, onMounted, ref } from 'vue'
 import { settingsApi } from '@/main';
@@ -93,6 +97,14 @@ const saveRow = (e: any) => {
     ).catch(handleError(toast, $t));
 };
 
+function optimizeDatabase() {
+    settingsApi.cleanupDb().then(
+        (result) => {
+            toast.add({ severity: 'success', summary: $t("admin.settings.optimized_title"), detail: $t("admin.settings.optimized_description", result) });
+        }
+    ).catch(handleError(toast, $t));
+}
+
 
 
 onMounted(loadList);
@@ -106,6 +118,8 @@ export default defineComponent({
         EnsureLoggedIn,
         DataTable,
         Column,
+        // eslint-disable-next-line vue/no-reserved-component-names
+        Button,
         IconField,
         InputIcon,
         InputText,

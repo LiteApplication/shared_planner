@@ -59,7 +59,7 @@ const messages = {
             google_maps: "Google Maps",
             reset_password: 'Reset password',
             set_password: 'Set password',
-            mail_sent: 'An email has been sent to you with a link to verify your email address.',
+            mail_sent: 'An email has been sent to you with a link to verify your email address. Please verify that you recieved the mail, and check your spam folder if you do not find it after a few minutes.',
             info: "Information",
             add: 'Add',
             edit: 'Edit',
@@ -135,6 +135,9 @@ const messages = {
             settings: {
                 saved_description: "{key} has been saved successfully.",
                 saved_title: "Setting saved",
+
+                optimized_description: "The database has been optimized :\n{deleted_tokens} login tokens\n{deleted_password_resets} password reset tokens\n{deleted_reminders} reminders\n{deleted_notifications} notifications\n{deleted_notifications_admin} admin notifications",
+                optimized_title: "Database optimized",
                 key: "Setting",
                 value: "Value",
 
@@ -160,7 +163,12 @@ const messages = {
                     email_admin_reservation_cancelled: "Email admins on reservation cancel",
                     email_admin_new_user_created: "Email admins on new user creation",
                     block_all_emails: "Block all emails",
+                    cleanup_reminders_days: "Cleanup reminders",
+                    cleanup_notifications_days: "Cleanup notifications",
+                    cleanup_notifications_days_admin: "Cleanup notifications (admin)",
                     notify_for_admin_actions: "Notify admins for their own actions",
+                    api_key: "API key",
+                    token_validity: "Stay logged in for (h)",
                 },
                 description: {
                     email_reservation_created: "When enabled, an email will be sent to the user when this user makes a reservation.",
@@ -185,6 +193,11 @@ const messages = {
                     email_admin_new_user_created: "When enabled, admins will receive a notification when a new user is created.",
                     block_all_emails: "When enabled, no emails will be sent by the server. This is useful for testing.",
                     notify_for_admin_actions: "When enabled, all the admins will receive a notification when one of them creates, modifies or deletes a reservation.",
+                    cleanup_reminders_days: "Delete reservation reminders after this many days.",
+                    cleanup_notifications_days: "Delete notifications after this many days.",
+                    cleanup_notifications_days_admin: "Delete admin notifications after this many days.",
+                    api_key: "Key used to get all reservations in the Google Sheets document. This key should be a long random string and should not be shared publicly as it allows access to all reservations.",
+                    token_validity: "The validity of the login tokens in hours. If a user does not use the token within this time, they will have to log in again.",
                 }
 
             },
@@ -226,7 +239,7 @@ const messages = {
             auth: {
                 user_not_found: 'User not found',
                 invalid_password: 'Invalid credentials',
-                email_exists: 'Email already exists',
+                email_exists: 'Email already exists, if you already have an account, click "Login" to register.',
                 full_name_too_short: 'Full name too short',
                 email_invalid: 'Invalid email',
                 password_too_short: 'Password must be at least 8 characters long',
@@ -400,13 +413,12 @@ const messages = {
             google_maps: 'Google Maps',
             reset_password: 'Réinitialiser le mot de passe',
             set_password: 'Définir le mot de passe',
-            mail_sent: 'Un email vous a été envoyé avec un lien pour vérifier votre adresse email.',
+            mail_sent: 'Un email vous a été envoyé avec un lien pour vérifier votre adresse email. Si vous ne recevez pas le message, vérifiez votre dossier "Indésirables/Spam". ',
             info: "Information",
             add: 'Ajouter',
             edit: 'Modifier',
             delete: 'Supprimer',
             search: 'Rechercher',
-
 
             date: 'Date',
             time: 'Heure',
@@ -477,6 +489,7 @@ const messages = {
             settings: {
                 saved_description: "{key} a été sauvegardé avec succès.",
                 saved_title: "Paramètre sauvegardé",
+                optimized_description: "La base de données a été optimisée :\n{deleted_tokens} jetons de connexion\n{deleted_password_resets} jetons de réinitialisation de mot de passe\n{deleted_reminders} rappels\n{deleted_notifications} notifications\n{deleted_notifications_admin} notifications admin",
                 key: "Paramètre",
                 value: "Valeur",
 
@@ -503,7 +516,11 @@ const messages = {
                     email_admin_new_user_created: "Envoyer un email aux admins lors de la création d'un nouvel utilisateur",
                     notify_for_admin_actions: "Notifier les admins pour leurs propres actions",
                     block_all_emails: "Bloquer tous les emails",
+                    cleanup_reminders_days: "Nettoyage rappels",
+                    cleanup_notifications_days: "Nettoyage notifications",
+                    cleanup_notifications_days_admin: "Nettoyage notifications (admin)",
                     api_key: "Clé API",
+                    token_validity: "Rester connecté pendant (h)",
                 },
                 description: {
                     email_reservation_created: "Lorsque cette option est activée, un email est envoyé à l'utilisateur lorsque celui-ci fait une réservation.",
@@ -528,7 +545,11 @@ const messages = {
                     email_admin_new_user_created: "Lorsque cette option est activée, les admins recevront une notification lorsqu'un nouvel utilisateur est créé.",
                     notify_for_admin_actions: "Lorsque cette option est activée, tous les admins recevront une notification lorsque l'un d'eux crée, modifie ou supprime une réservation.",
                     block_all_emails: "Lorsque cette option est activée, aucun email ne sera envoyé par le serveur. Cela est utile pour les tests.",
+                    cleanup_reminders_days: "Supprimer les rappels de réservation après ce nombre de jours.",
+                    cleanup_notifications_days: "Supprimer les notifications après ce nombre de jours.",
+                    cleanup_notifications_days_admin: "Supprimer les notifications des admins après ce nombre de jours.",
                     api_key: "Clé utilisée pour obtenir toutes les réservations dans le document Google Sheets. Cette clé doit être une longue chaîne de caractères générée aléatoirement et ne doit pas être partagée publiquement car elle permet d'accéder à toutes les réservations.",
+                    token_validity: "La validité des jetons de connexion en heures. Si un utilisateur n'utilise pas le jeton dans ce délai, il devra se reconnecter.",
                 }
 
             },
@@ -570,7 +591,7 @@ const messages = {
             auth: {
                 user_not_found: 'Utilisateur non trouvé',
                 invalid_password: 'Identifiants invalides',
-                email_exists: 'L\'email existe déjà',
+                email_exists: 'L\'email existe déjà. Si vous avez déjà créé un compte, cliquez sur "Se connecter".',
                 full_name_too_short: 'Noms trop courts',
                 email_invalid: 'Email invalide',
                 password_too_short: 'Le mot de passe doit comporter au moins 8 caractères',

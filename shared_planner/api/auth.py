@@ -50,6 +50,11 @@ def CurrentToken(access_token: Annotated[str, Depends(_oauth2_scheme)]) -> Token
         if token.is_expired():
             session.delete(token)
             raise HTTPException(status_code=401, detail="error.token.expired")
+
+        token.renew()
+        session.add(token)
+        session.commit()
+        session.refresh(token)
     return token
 
 
@@ -66,6 +71,10 @@ def CurrentUser(access_token: Annotated[str, Depends(_oauth2_scheme)]) -> User:
             session.delete(token)
             raise HTTPException(status_code=401, detail="error.token.expired")
 
+        token.renew()
+        session.add(token)
+        session.commit()
+        session.refresh(token)
         user = token.user
     return user
 
