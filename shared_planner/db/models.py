@@ -174,9 +174,9 @@ class Setting(SQLModel, table=True):
         return int(self.value)
 
     def asBool(self):
-        if self.value not in ("True", "False"):
+        if self.value not in ("True", "False", "0", "1"):
             raise ValueError(f"Setting '{self.key}' is not a boolean ({self.value})")
-        return self.value == "True"
+        return self.value == "True" or self.value == "1"
 
 
 class Notification(SQLModel, table=True):

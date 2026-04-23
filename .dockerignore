@@ -1,0 +1,13 @@
+.env
+.git
+.mypy_cache
+.venv
+.vscode
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+database.db
+poetry.lock
+web/node_modules
+web/dist

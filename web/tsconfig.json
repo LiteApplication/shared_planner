@@ -8,7 +8,7 @@
     "jsx": "preserve",
     "strict": true,
     "importHelpers": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -25,8 +25,7 @@
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "shims-vue.d.ts",
-    "src1:components/primevue/*/package.json"
+    "shims-vue.d.ts"
   ],
   "extends": "@vue/tsconfig/tsconfig.json"
 }

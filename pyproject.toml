@@ -1,28 +1,25 @@
-[tool.poetry]
+[project]
 name = "shared-planner"
 version = "0.2.0"
-description = ""
-authors = ["Alexis Rossfelder <alexis@liteapp.fr>"]
-readme = "README.md"
-package-mode = false
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.136.0",
+    "pydantic>=2.13.3",
+    "sqlmodel>=0.0.38",
+    "bcrypt>=5.0.0",
+    "pytz>=2026.1",
+    "python-dotenv>=1.2.2",
+    "gunicorn>=25.3.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-fastapi = {extras = ["standard"], version = "^0.115.4"}
-pydantic = "^2.8.2"
-sqlmodel = "^0.0.21"
-bcrypt = "^4.2.0"
-pytz = "^2024.2"
-
-[tool.poetry.group.dev.dependencies]
-ipython = "^8.26.0"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-
-[tool.poetry.scripts]
+[project.scripts]
 mail_daemon = "shared_planner.mailer_daemon:main"
 serve_mail = "shared_planner.mailer_daemon:serve_mail"
 init_settings = "shared_planner.db.settings:init_settings"
+
+[dependency-groups]
+dev = ["ipython>=8.26.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

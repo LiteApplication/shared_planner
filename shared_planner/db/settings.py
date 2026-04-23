@@ -7,6 +7,7 @@ from shared_planner.db.session import SessionLock
 # key: (value, private?)
 DEFAULTS = {
     "token_validity": (24, False),  # Time in hours for a token to be valid
+    "reset_token_validity": (24, True),  # Time in hours for a password reset token to be valid
     "cleanup_reminders_days": (
         1,
         True,
