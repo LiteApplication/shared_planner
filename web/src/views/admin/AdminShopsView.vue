@@ -1,309 +1,347 @@
 <template>
-    <EnsureLoggedIn require-admin :additional-loading="loading" />
-    <Toolbar class="mx-4">
-        <template #start>
-            <Select v-model="selectedShopInList" :options="shops" optionLabel="name" @change="loadShopDetails" checkmark class="m-1" showClear />
-            <Button :label="$t('admin.shop.create')" icon="pi pi-plus" @click="addShop" class="m-1 w-full" />
-        </template>
-        <template #end>
-            <Button :label="$t('admin.shop.delete')" icon="pi pi-trash" class="m-1" v-if="selectedShop" severity="danger" @click="onDeleteShop" />
-        </template>
-    </Toolbar>
-    <div v-if="selectedShop" class="m-4">
-        <form @submit.prevent="saveShop">
-            <div class="flex gap-4 flex-wrap justify-center">
-                <div class="flex flex-col gap-4">
-                    <Panel class="flex-grow">
-                        <template #header>
-                            <div class="flex justify-between w-full">
-                                <h2 class="text-lg font-bold">{{ $t('admin.shop.informations') }}</h2>
-                                <Button :label="$t('message.save')" icon="pi pi-save" type="submit" />
-                            </div>
-                        </template>
-                        <div class="flex flex-col gap-2 pt-6">
+    <div class="admin-shops">
+        <!-- Shop list sidebar -->
+        <div class="shops-list-panel">
+            <div class="panel-header">
+                <h2 class="font-semibold text-base">{{ $t('menu.admin.shops') }}</h2>
+                <Button icon="pi pi-plus" size="small" @click="createNewShop" v-tooltip="$t('admin.shop.create')" />
+            </div>
+            <div class="shops-list">
+                <div v-for="shop in shops" :key="shop.id" class="shop-list-item"
+                    :class="{ selected: selectedShop?.id === shop.id }"
+                    @click="selectShop(shop)">
+                    <span class="pi pi-shop text-sm opacity-60"></span>
+                    <span class="flex-1 truncate text-sm">{{ shop.name }}</span>
+                </div>
+                <div v-if="shops.length === 0 && !loading" class="text-slate-400 text-sm text-center py-4">
+                    {{ $t('message.empty_list') }}
+                </div>
+                <div v-if="loading" v-for="i in 3" :key="i" class="p-2">
+                    <Skeleton height="2rem" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Shop detail panel -->
+        <div class="shop-detail-panel" v-if="selectedShop">
+            <div class="panel-header">
+                <h2 class="font-semibold text-base truncate">{{ selectedShop.id === -1 ? $t('admin.shop.create') : selectedShop.name }}</h2>
+                <Button v-if="selectedShop.id !== -1" icon="pi pi-trash" severity="danger" text size="small"
+                    @click="onDeleteShop" v-tooltip="$t('admin.shop.delete')" />
+            </div>
+
+            <Tabs v-model:value="activeTab">
+                <TabList>
+                    <Tab value="details">{{ $t('admin.shop.slot_details') }}</Tab>
+                    <Tab value="slots" :disabled="selectedShop.id === -1">{{ $t('admin.shop.slot_planner') }}</Tab>
+                </TabList>
+
+                <TabPanels>
+                    <!-- Details tab -->
+                    <TabPanel value="details">
+                        <form @submit.prevent="saveShop" class="flex flex-col gap-4 pt-2">
                             <IftaLabel>
                                 <label for="name">{{ $t('admin.shop.name') }}</label>
                                 <InputText id="name" v-model="selectedShop.name" fluid />
                             </IftaLabel>
                             <IftaLabel>
-                                <label for="description">{{ $t("admin.shop.description") }}</label>
-                                <Textarea id="description" v-model="selectedShop.description" fluid />
-                            </IftaLabel>
-                            <IftaLabel>
-                                <label for="location">{{ $t("admin.shop.location") }}</label>
-                                <InputText id="location" v-model="selectedShop.location" fluid />
-                            </IftaLabel>
-                            <IftaLabel>
-                                <label for="maps_link">{{ $t("admin.shop.maps") }}</label>
-                                <InputText id="maps_link" v-model="selectedShop.maps_link" fluid />
+                                <label for="description">{{ $t('admin.shop.description') }}</label>
+                                <Textarea id="description" v-model="selectedShop.description" fluid rows="3" />
                             </IftaLabel>
                             <div class="flex gap-4 flex-wrap">
-                                <IftaLabel class="flex-grow">
-                                    <InputNumber id="volunteers" v-model="selectedShop.volunteers" fluid />
-                                    <label for="volunteers">{{ $t("admin.shop.volunteers") }}</label>
+                                <IftaLabel class="flex-1">
+                                    <label for="location">{{ $t('admin.shop.location') }}</label>
+                                    <InputText id="location" v-model="selectedShop.location" fluid />
                                 </IftaLabel>
-                                <IftaLabel class="flex-grow">
-                                    <InputNumber id="min_time" v-model="selectedShop.min_time" fluid />
-                                    <label for="min_time">{{ $t("admin.shop.min_time") }}</label>
-                                </IftaLabel>
-                                <IftaLabel class="flex-grow">
-                                    <InputNumber id="max_time" v-model="selectedShop.max_time" fluid />
-                                    <label for="max_time">{{ $t("admin.shop.max_time") }}</label>
+                                <IftaLabel class="flex-1">
+                                    <label for="maps">{{ $t('admin.shop.maps') }}</label>
+                                    <InputText id="maps" v-model="selectedShop.maps_link" fluid />
                                 </IftaLabel>
                             </div>
-                            <div class="flex flex-wrap gap-2 flex-grow justify-between">
-                                <IftaLabel>
-                                    <DatePicker id="available_from" v-model="startDate" v-if="selectedShop !== null" inline date-format="yy-mm-dd" />
-                                    <label for="available_from">{{ $t("admin.shop.start_date") }}</label>
-                                </IftaLabel>
-                                <IftaLabel>
-                                    <DatePicker id="available_until" v-model="endDate" v-if="selectedShop !== null" inline date-format="yy-mm-dd" />
-                                    <label for="available_until">{{ $t("admin.shop.end_date") }}</label>
-                                </IftaLabel>
+                            <div class="flex gap-4 flex-wrap">
+                                <div class="flex-1">
+                                    <p class="text-sm text-slate-500 mb-1">{{ $t('admin.shop.start_date') }}</p>
+                                    <DatePicker v-model="startDate" inline date-format="yy-mm-dd" />
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm text-slate-500 mb-1">{{ $t('admin.shop.end_date') }}</p>
+                                    <DatePicker v-model="endDate" inline date-format="yy-mm-dd" />
+                                </div>
                             </div>
-                        </div>
-                    </Panel>
-                </div>
-                <Panel :header="$t('admin.shop.open_ranges')">
-                    <template #header>
-                        <div class="flex justify-between w-full">
-                            <h2 class="text-lg font-bold">{{ $t('admin.shop.open_ranges') }}</h2>
-                            <Button icon="pi pi-plus" outlined :label="$t('admin.shop.or_add')" class="" @click="addOpenRange"
-                                v-if="selectedShop.id !== -1" />
-                        </div>
-                    </template>
-                    <DataTable :value="selectedShop.open_ranges" dataKey="id" tableStyle="" resizableColumns columnResizeMode="fit" size="large"
-                        stripedRows sort-field="day" :sort-order="1" removableSort v-if="'open_ranges' in selectedShop" edit-mode="row"
-                        v-model:editingRows="editingRowsOR" @row-edit-save="onOpenRangeSave">
-                        <Column field="day" :header="$t('admin.shop.or_day')" sortable>
-                            <template #editor="{ data }">
-                                <Select v-model="data.day" optionValue="value"
-                                    :options="Array.from({ length: 7 }, (_, index) => ({ label: $t('day.' + index), value: index }))"
-                                    optionLabel="label" :invalid="data.day === null" />
-                            </template>
-                            <template #body="{ data }">
-                                {{ $t('day.' + data.day) }}
-                            </template>
-                        </Column>
-                        <Column field="start_time" :header="$t('admin.shop.or_start')" sortable>
-                            <template #editor="{ data }">
-                                <InputMask v-model="data.start_time" mask="99:99" placeholder="HH:MM" :invalid="!validTime(data.start_time)" />
-                            </template>
-                        </Column>
-                        <Column field="end_time" :header="$t('admin.shop.or_end')" sortable>
-                            <template #editor="{ data }">
-                                <InputMask v-model="data.end_time" mask="99:99" placeholder="HH:MM" :invalid="!validTime(data.end_time)" />
-                            </template>
-                        </Column>
-                        <Column rowEditor style="width: 10%; min-width: 8rem" bodyStyle="text-align:center"></Column>
-                        <Column style="width: 10%; min-width: 4rem">
-                            <template #body="{ data }">
-                                <Button icon="pi pi-trash" class="p-button-rounded p-button-danger p-button-text" @click="deleteOpenRange(data.id)" />
-                            </template>
-                        </Column>
-                    </DataTable>
-                </Panel>
+                            <div class="flex justify-end">
+                                <Button :label="$t('message.save')" icon="pi pi-save" type="submit" />
+                            </div>
+                        </form>
+                    </TabPanel>
+
+                    <!-- Slot planner tab -->
+                    <TabPanel value="slots">
+                        <SlotPlanner :slots="slots" :shopId="selectedShop.id"
+                            @create="onSlotCreate" @update="onSlotUpdate" @delete="onSlotDelete" />
+                    </TabPanel>
+                </TabPanels>
+            </Tabs>
+        </div>
+
+        <div class="shop-detail-panel flex items-center justify-center text-slate-400" v-else>
+            <div class="text-center">
+                <span class="pi pi-shop text-4xl block mb-2 opacity-30"></span>
+                <p>{{ $t('message.shops.select') }}</p>
             </div>
-        </form>
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { type OpenRange, type Shop, type ShopWithOpenRange, exampleShop } from '@/api/types';
-import { shopApi } from '@/main';
-import EnsureLoggedIn from '@/components/EnsureLoggedIn.vue';
-import Select from 'primevue/select';
+import type { Shop, ShopWithOpenRange, TimeSlot } from '@/api/types';
+import { shopApi, slotsApi } from '@/main';
+import { exampleShop } from '@/api/types';
 import Button from 'primevue/button';
-import { useToast } from 'primevue/usetoast';
-import { useI18n } from 'vue-i18n';
-import DatePicker from '@/components/primevue/DatePicker';
-import Column from 'primevue/column';
-import DataTable from 'primevue/datatable';
-import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import IftaLabel from 'primevue/iftalabel';
-import Panel from 'primevue/panel';
-import Toolbar from 'primevue/toolbar';
+import Skeleton from 'primevue/skeleton';
+import Tabs from 'primevue/tabs';
+import Tab from 'primevue/tab';
+import TabList from 'primevue/tablist';
+import TabPanels from 'primevue/tabpanels';
+import TabPanel from 'primevue/tabpanel';
+import DatePicker from '@/components/primevue/DatePicker';
+import SlotPlanner from '@/components/SlotPlanner.vue';
 import { networkDate } from '@/utils';
-import InputMask from 'primevue/inputmask';
-import handleError from '@/error_handler';
 import { invalidateCache } from '@/api';
+import { useToast } from 'primevue/usetoast';
+import { useI18n } from 'vue-i18n';
+import handleError from '@/error_handler';
+
 const toast = useToast();
-const $t = useI18n().t;
+const { t } = useI18n();
 
 const shops = ref<Shop[]>([]);
-const selectedShopInList = ref<Shop | null>(null);
 const selectedShop = ref<ShopWithOpenRange | null>(null);
+const slots = ref<TimeSlot[]>([]);
 const loading = ref(false);
-
-const editingRowsOR = ref<OpenRange[]>([]);
-
-
-
+const activeTab = ref('details');
 const startDate = ref<Date | null>(null);
 const endDate = ref<Date | null>(null);
 
-function validTime(time: string) {
-    return time.match(/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/);
-}
-
-
-function loadList() {
+async function loadShops() {
     loading.value = true;
-    invalidateCache();
-
-    shopApi.list().then(
-        (r) => {
-            shops.value = r;
-            selectedShopInList.value = r[shops.value.length - 1];
-            loadShopDetails();
-        }
-    ).catch(handleError(toast, $t, "error.shop.unknown")).finally(() => loading.value = false);
-}
-
-function loadShopDetails() {
-    if (selectedShopInList.value) {
-        loading.value = true;
-        shopApi.get(selectedShopInList.value.id).then(
-            (r) => {
-                startDate.value = new Date(r.available_from);
-                endDate.value = new Date(r.available_until);
-                // All open ranges are converted to the correct format HH:MM
-                r.open_ranges = r.open_ranges.map((o) => ({ ...o, start_time: o.start_time.substring(0, 5), end_time: o.end_time.substring(0, 5) }));
-                selectedShop.value = r;
-
-                loading.value = false;
-
-            }
-        ).catch(handleError(toast, $t, "error.shop.unknown"));
-    } else {
-        selectedShop.value = null;
+    try {
+        shops.value = await shopApi.list();
+    } catch (e) {
+        handleError(toast, t, 'error.shop.unknown')(e);
+    } finally {
+        loading.value = false;
     }
 }
 
-function addShop() {
+async function selectShop(shop: Shop) {
+    loading.value = true;
+    try {
+        const detail = await shopApi.get(shop.id);
+        detail.open_ranges = detail.open_ranges.map(o => ({
+            ...o,
+            start_time: o.start_time.substring(0, 5),
+            end_time: o.end_time.substring(0, 5),
+        }));
+        selectedShop.value = detail;
+        startDate.value = new Date(detail.available_from);
+        endDate.value = new Date(detail.available_until);
+        activeTab.value = 'details';
+        await loadSlots(shop.id);
+    } catch (e) {
+        handleError(toast, t, 'error.shop.unknown')(e);
+    } finally {
+        loading.value = false;
+    }
+}
+
+async function loadSlots(shopId: number) {
+    try {
+        slots.value = await slotsApi.list(shopId);
+    } catch (e) {
+        handleError(toast, t, 'error.shop.unknown')(e);
+    }
+}
+
+function createNewShop() {
     selectedShop.value = { ...exampleShop, open_ranges: [] };
-    selectedShopInList.value = selectedShop.value;
+    startDate.value = new Date();
+    endDate.value = new Date();
+    slots.value = [];
+    activeTab.value = 'details';
 }
 
-function addOpenRange() {
-    if (selectedShop.value) {
-        selectedShop.value.open_ranges.push({ id: -1, day: 0, start_time: '00:00', end_time: '00:00' });
-        editingRowsOR.value.push(selectedShop.value.open_ranges[selectedShop.value.open_ranges.length - 1]);
-    }
-}
-
-function onOpenRangeSave(event: { newData: OpenRange, data: OpenRange, index: number }) {
-    const { newData, data, index } = event;
-    invalidateCache();
-
-    selectedShop.value!.open_ranges[index] = newData; // optimistic update
-
-    if (newData.id === -1) {
-        shopApi.addOpenRange(selectedShop.value!.id, newData).then(
-            (r) => {
-                selectedShop.value = r;
-                toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.shop.or_added") });
-            }
-        ).catch(handleError(toast, $t)).finally(
-            loadShopDetails
-        );
-    } else {
-        shopApi.updateOpenRange(newData).then(
-            (r) => {
-                selectedShop.value = r;
-                toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.shop.or_updated") });
-            }
-        ).catch(handleError(toast, $t)).finally(
-            loadShopDetails
-        );
-    }
-}
-
-function deleteOpenRange(id: number) {
-    invalidateCache();
-    shopApi.deleteOpenRange(id).then(
-        () => {
-            toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.shop.or_deleted") });
-        }
-    ).catch(handleError(toast, $t));
-
-    selectedShop.value!.open_ranges = selectedShop.value!.open_ranges.filter((o) => o.id !== id);
-
-}
-
-function saveShop() {
-    if (!selectedShop.value) {
-        return;
-    }
+async function saveShop() {
+    if (!selectedShop.value) return;
     selectedShop.value.available_from = networkDate(startDate.value!);
     selectedShop.value.available_until = networkDate(endDate.value!);
 
-    if (selectedShop.value.id === -1) {
-        shopApi.create(selectedShop.value).then(
-            (r) => {
-                loadList();
-                selectedShopInList.value = r;
-                toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.shop.created") });
-            }
-        ).catch(handleError(toast, $t));
-        return;
-    }
-
-    invalidateCache();
-    shopApi.update(selectedShop.value).then(
-        () => {
-            loadShopDetails();
-            toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.shop.updated") });
+    try {
+        if (selectedShop.value.id === -1) {
+            const created = await shopApi.create(selectedShop.value);
+            await loadShops();
+            await selectShop(created);
+            toast.add({ severity: 'success', summary: t('message.success'), detail: t('admin.shop.created') });
+        } else {
+            invalidateCache();
+            await shopApi.update(selectedShop.value);
+            await selectShop(selectedShop.value);
+            toast.add({ severity: 'success', summary: t('message.success'), detail: t('admin.shop.updated') });
         }
-    ).catch(handleError(toast, $t));
-
-
+    } catch (e) {
+        handleError(toast, t)(e);
+    }
 }
 
-function onDeleteShop() {
-    if (!selectedShop.value) {
-        return;
+async function onDeleteShop() {
+    if (!selectedShop.value || !confirm(t('admin.shop.delete_confirm'))) return;
+    try {
+        await shopApi.delete(selectedShop.value.id);
+        shops.value = shops.value.filter(s => s.id !== selectedShop.value!.id);
+        selectedShop.value = null;
+        slots.value = [];
+        invalidateCache();
+        toast.add({ severity: 'success', summary: t('message.success'), detail: t('admin.shop.deleted') });
+    } catch (e) {
+        handleError(toast, t)(e);
     }
-    if (!confirm($t("admin.shop.delete_confirm"))) return;
-
-
-    shopApi.delete(selectedShop.value.id).then(
-        () => {
-            loadList();
-            toast.add({ severity: 'success', summary: $t("message.success"), detail: $t("admin.shop.deleted") });
-        }
-    ).catch(handleError(toast, $t));
-
-    selectedShop.value = null;
-    shops.value = shops.value.filter((s) => s.id !== selectedShopInList.value!.id);
-    selectedShopInList.value = null;
 }
 
-onMounted(loadList);
+async function onSlotCreate(slot: Partial<TimeSlot>) {
+    if (!selectedShop.value) return;
+    try {
+        await slotsApi.create(selectedShop.value.id, {
+            day: slot.day!,
+            start_time: slot.start_time!,
+            end_time: slot.end_time!,
+            max_volunteers: slot.max_volunteers!,
+            valid_from: slot.valid_from!,
+            valid_until: slot.valid_until!,
+        });
+        invalidateCache();
+        await loadSlots(selectedShop.value.id);
+        toast.add({ severity: 'success', summary: t('message.success'), detail: t('admin.shop.slot_created') });
+    } catch (e) {
+        handleError(toast, t)(e);
+    }
+}
+
+async function onSlotUpdate(slot: Partial<TimeSlot>) {
+    if (!slot.id) return;
+    try {
+        await slotsApi.update(slot.id, {
+            day: slot.day!,
+            start_time: slot.start_time!,
+            end_time: slot.end_time!,
+            max_volunteers: slot.max_volunteers!,
+            valid_from: slot.valid_from!,
+            valid_until: slot.valid_until!,
+        });
+        invalidateCache();
+        await loadSlots(selectedShop.value!.id);
+        toast.add({ severity: 'success', summary: t('message.success'), detail: t('admin.shop.slot_updated') });
+    } catch (e) {
+        handleError(toast, t)(e);
+    }
+}
+
+async function onSlotDelete(slotId: number) {
+    if (!confirm(t('admin.shop.slot_delete_confirm'))) return;
+    try {
+        await slotsApi.delete(slotId);
+        invalidateCache();
+        await loadSlots(selectedShop.value!.id);
+        toast.add({ severity: 'success', summary: t('message.success'), detail: t('admin.shop.slot_deleted') });
+    } catch (e) {
+        handleError(toast, t)(e);
+    }
+}
+
+onMounted(loadShops);
 </script>
 
 <script lang="ts">
-export default {
-    name: 'AdminShopsView',
-    components: {
-        EnsureLoggedIn,
-        // eslint-disable-next-line vue/no-reserved-component-names
-        Select,
-        // eslint-disable-next-line vue/no-reserved-component-names
-        Button,
-        InputText,
-        // eslint-disable-next-line vue/no-reserved-component-names
-        Textarea,
-        InputMask,
-        DatePicker,
-        DataTable,
-        Column,
-        IftaLabel,
-        Panel,
-        Toolbar
-    },
-}
+export default { name: 'AdminShopsView' }
 </script>
+
+<style scoped>
+.admin-shops {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.shops-list-panel {
+    width: 220px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: var(--p-border-radius-lg, 8px);
+    overflow: hidden;
+    max-height: 80vh;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--p-content-background);
+    border-bottom: 1px solid var(--p-content-border-color);
+}
+
+.shops-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.shop-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--p-border-radius-md, 6px);
+    cursor: pointer;
+    transition: background 0.1s;
+    color: var(--p-text-muted-color);
+}
+
+.shop-list-item:hover {
+    background: var(--p-navigation-item-focus-background);
+    color: var(--p-text-color);
+}
+
+.shop-list-item.selected {
+    background: var(--p-highlight-background);
+    color: var(--p-highlight-color);
+    font-weight: 600;
+}
+
+.shop-detail-panel {
+    flex: 1;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: var(--p-border-radius-lg, 8px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.shop-detail-panel :deep(.p-tabs) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.shop-detail-panel :deep(.p-tabpanels) {
+    flex: 1;
+    overflow-y: auto;
+}
+</style>

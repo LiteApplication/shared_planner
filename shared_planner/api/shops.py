@@ -20,7 +20,6 @@ class ShopWithoutTimeRanges(BaseModel):
     description: str
     location: str
     maps_link: str
-    volunteers: int
     min_time: int
     max_time: int
     available_from: datetime.date
@@ -36,7 +35,6 @@ class ShopWithoutTimeRanges(BaseModel):
                     "description",
                     "location",
                     "maps_link",
-                    "volunteers",
                     "min_time",
                     "max_time",
                     "available_from",

@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      context: .
+      target: production
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./database.db:/app/database.db
+    env_file: .env
+    restart: unless-stopped

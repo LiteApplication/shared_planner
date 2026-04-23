@@ -1,12 +1,21 @@
-FROM node:22-alpine AS frontend-builder
-WORKDIR /app
+# --- Frontend Base ---
+FROM node:22-alpine AS frontend-base
+WORKDIR /app/web
 COPY web/package*.json ./
 RUN npm ci
+
+# --- Frontend Development ---
+FROM frontend-base AS frontend-dev
+COPY web/ .
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+# --- Frontend Builder ---
+FROM frontend-base AS frontend-builder
 COPY web/ .
 RUN npm run build
 
-
-FROM python:3.12-slim
+# --- Backend Base ---
+FROM python:3.12-slim AS backend-base
 
 RUN apt-get update && apt-get install -y --no-install-recommends locales && \
     localedef -i fr_FR -c -f UTF-8 -A /usr/share/locale/locale.alias fr_FR.UTF-8 && \
@@ -23,10 +32,16 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
+# --- Backend Development ---
+FROM backend-base AS backend-dev
+CMD ["sh", "-c", "uv run init_settings && uv run uvicorn shared_planner.api:app --host 0.0.0.0 --port 8000 --reload --reload-dir shared_planner --reload-dir templates --reload-exclude 'database.db'"]
+
+# --- Production ---
+FROM backend-base AS production
 COPY shared_planner/ ./shared_planner/
 COPY templates/ ./templates/
 COPY entrypoint.sh ./
-COPY --from=frontend-builder /app/dist ./web/dist
+COPY --from=frontend-builder /app/web/dist ./web/dist
 
 RUN uv sync --frozen --no-dev && chmod +x entrypoint.sh
 

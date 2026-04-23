@@ -8,7 +8,8 @@ from sqlmodel import select
 
 from shared_planner.api.auth import CurrentAdmin, CurrentUser, CurrentToken
 from shared_planner.api.shops import ShopWithoutTimeRanges
-from shared_planner.db.models import Reservation, Shop, User, Token, Notification
+from shared_planner.api.slots import TimeSlotOut
+from shared_planner.db.models import Reservation, Shop, TimeSlot, User, Token, Notification
 from shared_planner.db.session import SessionLock
 from shared_planner.db.settings import get
 from shared_planner.week import monday_str
@@ -64,162 +65,177 @@ class ReservedTimeRange(BaseModel):
         )
 
 
-class NewReservation(BaseModel):
-    start_time: datetime.datetime
-    duration_minutes: int
-    user_id: int
-    shop_id: int
+class SlotStatus(BaseModel):
+    """Status of a time slot for a specific date"""
+
+    slot: TimeSlotOut
+    date: datetime.date
+    booked_count: int
+    booked_by_me: bool
+    reservation_id: int | None = None
     validated: bool = False
+
+
+class BookSlotRequest(BaseModel):
+    time_slot_id: int
+    date: datetime.date
+
+
+class BookMultipleSlotsRequest(BaseModel):
+    time_slot_ids: list[int]
+    date: datetime.date
 
 
 @router.get("/{shop_id}/{monday}/list")
 def get_planning(
     shop_id: int, monday: str, user: Annotated[User, Depends(CurrentUser)]
-) -> list[list[ReservedTimeRange]]:
-    """Get the planning of a shop for a specific week
-
-    A week is defined by the Monday of the week.
-    The user is not allowed to see who booked a specific time range, but can see
-    the number of available spaces. The user can see the time ranges they booked
-    """
+) -> list[list[SlotStatus]]:
+    """Get the slot planning of a shop for a specific week"""
     with SessionLock() as session:
         shop = session.get(Shop, shop_id)
         if shop is None:
             raise HTTPException(status_code=404, detail="error.shop.not_found")
 
-        # Ensure the day is a Monday
         week_start = datetime.datetime.strptime(monday, "%Y-%m-%d")
-
         if week_start.weekday() != 0:
             raise HTTPException(status_code=400, detail="error.reservation.not_monday")
 
-        # load the time ranges of the shop
-        used_ranges = shop.reservations
+        week_end = week_start + datetime.timedelta(days=7)
+        # Fetch all reservations for this shop in this week
+        week_reservations = session.exec(
+            select(Reservation).where(
+                Reservation.shop_id == shop_id,
+                Reservation.start_time >= week_start,
+                Reservation.start_time < week_end,
+            )
+        ).all()
 
-        # Create a list of time ranges per day
-        time_ranges: list[ReservedTimeRange] = []
-        for day in range(7):
-            day_start = week_start + datetime.timedelta(days=day)
-            day_end = day_start + datetime.timedelta(days=1)
-            ranges = []
-            for time_range in used_ranges:
-                if time_range.start_time < day_start or time_range.end_time >= day_end:
-                    continue
-                ranges.append(ReservedTimeRange.from_reservation(time_range, user))
-            time_ranges.append(ranges)
+        result = []
+        for day_offset in range(7):
+            day_date = (week_start + datetime.timedelta(days=day_offset)).date()
+            weekday = day_date.weekday()
+
+            day_slots = [
+                s
+                for s in shop.time_slots
+                if s.day == weekday and s.valid_from <= day_date <= s.valid_until
+            ]
+            day_slots.sort(key=lambda s: s.start_time)
+
+            day_statuses = []
+            for slot in day_slots:
+                # Find reservations that overlap with this slot
+                slot_start = datetime.datetime.combine(day_date, slot.start_time)
+                slot_end = datetime.datetime.combine(day_date, slot.end_time)
+
+                slot_reservations = [
+                    r
+                    for r in week_reservations
+                    if (r.start_time < slot_end and r.end_time > slot_start)
+                ]
+
+                booked_count = len(slot_reservations)
+                my_res = next(
+                    (r for r in slot_reservations if r.user_id == user.id), None
+                )
+
+                day_statuses.append(
+                    SlotStatus(
+                        slot=TimeSlotOut.from_slot(slot),
+                        date=day_date,
+                        booked_count=booked_count,
+                        booked_by_me=my_res is not None,
+                        reservation_id=my_res.id if my_res else None,
+                        validated=my_res.validated if my_res else False,
+                    )
+                )
+
+            result.append(day_statuses)
         session.close()
 
-    return time_ranges
-
-
-def check_overlap(
-    shop: Shop,
-    start_time: datetime.datetime,
-    duration: datetime.timedelta,
-    user: User,
-    exclude_res_id: int = None,
-):
-    """Check if a reservation overlaps with too much existing reservations or with a specific user.
-
-    Returns True if the reservation is valid, False otherwise."""
-    overlap_check = []
-    end_time = start_time + duration
-    for reservation in shop.reservations:
-        if reservation.id == exclude_res_id:
-            continue
-        if reservation.start_time >= end_time or reservation.end_time <= start_time:
-            continue
-        overlap_check.append((1, reservation.start_time))
-        overlap_check.append((-1, reservation.end_time))
-        if reservation.user_id == user.id:
-            return False
-
-    # Count the reservation that we want to add too
-    overlap_check.append((+1, start_time))
-    overlap_check.append((-1, end_time))
-
-    overlap_check.sort(key=lambda x: x[1])
-    overlap_count = 0
-    for change, _ in overlap_check:
-        overlap_count += change
-        if overlap_count > shop.volunteers:
-            return False
-    return True
-
-
-def check_reservation(
-    shop: Shop,
-    start_time: datetime.datetime,
-    duration_minutes: int,
-    user: User,
-    exclude_res_id: int = None,
-) -> None:
-    """Check if a reservation is valid
-
-    Returns True if the reservation is valid, False otherwise."""
-    duration = datetime.timedelta(minutes=duration_minutes)
-    if not (
-        check_overlap(shop, start_time, duration, user, exclude_res_id=exclude_res_id)
-        or user.admin
-    ):
-        raise HTTPException(status_code=400, detail="error.reservation.overlap")
-
-    if duration_minutes < shop.min_time and not (user.admin and duration_minutes > 0):
-        raise HTTPException(status_code=400, detail="error.reservation.too_short")
-
-    if duration_minutes > shop.max_time and not user.admin:
-        raise HTTPException(status_code=400, detail="error.reservation.too_long")
-
-    if start_time < datetime.datetime.now() and not user.admin:
-        raise HTTPException(status_code=400, detail="error.reservation.past_time")
-
-    if start_time < shop.available_from and not user.admin:
-        raise HTTPException(status_code=400, detail="error.reservation.before_open")
-
-    if start_time > shop.available_until and not user.admin:
-        raise HTTPException(status_code=400, detail="error.reservation.after_close")
-
-    # Get the day of the week
-    day = start_time.weekday()
-
-    # Check that the reservation fits inside a single open time range
-    for open_time in shop.open_ranges:
-        if (open_time.day != day) or (open_time.start_time > open_time.end_time):
-            continue
-        if (
-            open_time.start_time <= start_time.time()
-            and (start_time + duration).time() <= open_time.end_time
-        ):
-            break
-    else:
-        if not user.admin:
-            raise HTTPException(
-                status_code=400, detail="error.reservation.outside_open"
-            )
+    return result
 
 
 @router.post("/{shop_id}/book")
-def book_time_range(
+def book_slot(
     shop_id: int,
-    start_time: datetime.datetime = Body(),
-    duration_minutes: int = Body(),
-    user: User = Depends(CurrentUser),
+    req: BookSlotRequest,
+    user: Annotated[User, Depends(CurrentUser)],
 ) -> ReservedTimeRange:
-    """Book a time range in a shop"""
+    """Book a predefined time slot"""
+    return book_slots(
+        shop_id, BookMultipleSlotsRequest(time_slot_ids=[req.time_slot_id], date=req.date), user
+    )
+
+
+@router.post("/{shop_id}/book_multiple")
+def book_slots(
+    shop_id: int,
+    req: BookMultipleSlotsRequest,
+    user: Annotated[User, Depends(CurrentUser)],
+) -> ReservedTimeRange:
+    """Book multiple contiguous time slots as one reservation"""
     with SessionLock() as session:
         shop = session.get(Shop, shop_id)
         if shop is None:
             raise HTTPException(status_code=404, detail="error.shop.not_found")
 
-        check_reservation(shop, start_time, duration_minutes, user)
+        if not req.time_slot_ids:
+            raise HTTPException(status_code=400, detail="error.reservation.no_slots")
 
-        duration = datetime.timedelta(minutes=duration_minutes)
+        slots = []
+        for slot_id in req.time_slot_ids:
+            slot = session.get(TimeSlot, slot_id)
+            if slot is None or slot.shop_id != shop_id:
+                raise HTTPException(status_code=404, detail="error.slot.not_found")
+            if not (slot.valid_from <= req.date <= slot.valid_until):
+                raise HTTPException(status_code=400, detail="error.slot.not_active")
+            if req.date.weekday() != slot.day:
+                raise HTTPException(status_code=400, detail="error.slot.wrong_day")
+            slots.append(slot)
+
+        # Sort slots by time to determine overall range
+        slots.sort(key=lambda s: s.start_time)
+
+        if req.date < datetime.date.today() and not user.admin:
+            raise HTTPException(status_code=400, detail="error.reservation.past_time")
+
+        if req.date < shop.available_from.date() and not user.admin:
+            raise HTTPException(status_code=400, detail="error.reservation.before_open")
+
+        if req.date > shop.available_until.date() and not user.admin:
+            raise HTTPException(status_code=400, detail="error.reservation.after_close")
+
+        # Verification for each slot
+        for slot in slots:
+            slot_start = datetime.datetime.combine(req.date, slot.start_time)
+            slot_end = datetime.datetime.combine(req.date, slot.end_time)
+
+            # Use overlap check for existing reservations
+            query = select(Reservation).where(
+                Reservation.shop_id == shop_id,
+                Reservation.start_time < slot_end,
+                Reservation.end_time > slot_start,
+            )
+            existing = session.exec(query).all()
+
+            if any(r.user_id == user.id for r in existing):
+                raise HTTPException(
+                    status_code=400, detail="error.reservation.already_booked"
+                )
+
+            if len(existing) >= slot.max_volunteers and not user.admin:
+                raise HTTPException(status_code=400, detail="error.reservation.overlap")
+
+        overall_start = datetime.datetime.combine(req.date, slots[0].start_time)
+        overall_end = datetime.datetime.combine(req.date, slots[-1].end_time)
 
         new_reservation = Reservation(
             user_id=user.id,
             shop=shop,
-            start_time=start_time,
-            end_time=start_time + duration,
+            start_time=overall_start,
+            end_time=overall_end,
+            time_slot_id=None,
         )
 
         session.add(
@@ -228,18 +244,18 @@ def book_time_range(
                 "notification.reservation_created",
                 {
                     "shop": shop.name,
-                    "datetime-start_time": start_time.strftime("%Y-%m-%d %H:%M"),
-                    "duration": duration.total_seconds() // 60,
+                    "datetime-start_time": overall_start.strftime("%Y-%m-%d %H:%M"),
+                    "duration": int(
+                        (overall_end - overall_start).total_seconds() // 60
+                    ),
                     "ics": new_reservation.ics_data(),
                 },
-                route=f"/shops/{shop.id}/{monday_str(start_time)}",
-                is_reminder=False,
-                # Do not send a mail if we are going to send a reminder anyway
+                route=f"/shops/{shop.id}/{monday_str(overall_start)}",
                 mail=get("email_reservation_created").asBool()
                 and (
                     datetime.datetime.now()
                     < (
-                        start_time
+                        overall_start
                         - datetime.timedelta(
                             hours=get("email_notification_before").asInt()
                         )
@@ -258,10 +274,12 @@ def book_time_range(
                     {
                         "user": user.full_name,
                         "shop": shop.name,
-                        "datetime-start_time": start_time.strftime("%Y-%m-%d %H:%M"),
-                        "duration": duration_minutes,
+                        "datetime-start_time": overall_start.strftime("%Y-%m-%d %H:%M"),
+                        "duration": int(
+                            (overall_end - overall_start).total_seconds() // 60
+                        ),
                     },
-                    route=f"/shops/{shop.id}/{monday_str(start_time)}",
+                    route=f"/shops/{shop.id}/{monday_str(overall_start)}",
                     is_reminder=True,
                     mail=get("email_admin_reservation_created").asBool(),
                 )
@@ -272,105 +290,6 @@ def book_time_range(
         session.refresh(new_reservation)
 
         result = ReservedTimeRange.from_reservation(new_reservation, user)
-    return result
-
-
-@router.put("/{reservation_id}/update")
-def update_reservation(
-    reservation_id: int,
-    start_time: datetime.datetime = Body(),
-    duration_minutes: int = Body(),
-    user: User = Depends(CurrentUser),
-) -> ReservedTimeRange:
-    """Update a reservation"""
-    with SessionLock() as session:
-        reservation = session.get(Reservation, reservation_id)
-        if reservation is None:
-            raise HTTPException(status_code=404, detail="error.reservation.not_found")
-        if reservation.user_id != user.id and not user.admin:
-            raise HTTPException(status_code=403, detail="error.reservation.cant_update")
-        if reservation.validated and not user.admin:
-            raise HTTPException(
-                status_code=400, detail="error.reservation.cant_update_validated"
-            )
-
-        start_time = start_time.replace(second=0, microsecond=0)
-
-        check_reservation(
-            reservation.shop,
-            start_time,
-            duration_minutes,
-            user,
-            exclude_res_id=reservation.id,
-        )
-
-        previous_start_time = reservation.start_time
-        previous_duration = (
-            reservation.end_time - reservation.start_time
-        ).total_seconds() // 60
-
-        if (
-            start_time == reservation.start_time
-            and duration_minutes == previous_duration
-        ):
-            # No change, no need to update
-            return ReservedTimeRange.from_reservation(reservation, user)
-
-        reservation.start_time = start_time
-        reservation.end_time = start_time + datetime.timedelta(minutes=duration_minutes)
-        session.add(reservation)
-        session.commit()
-        session.refresh(reservation)
-
-        session.add(
-            Notification.create(
-                reservation.user,
-                "notification.reservation_modified",
-                {
-                    "shop": reservation.shop.name,
-                    "datetime-start_time": reservation.start_time.strftime(
-                        "%Y-%m-%d %H:%M"
-                    ),
-                    "duration": duration_minutes,
-                    "datetime-previous_start_time": previous_start_time.strftime(
-                        "%Y-%m-%d %H:%M"
-                    ),
-                    "previous_duration": previous_duration,
-                    "ics": reservation.ics_data(update=True),
-                },
-                route=f"/shops/{reservation.shop.id}/{monday_str(start_time)}",
-                is_reminder=False,
-                mail=get("email_reservation_modified").asBool(),
-            )
-        )
-
-        if get("notif_admin_reservation_modified").asBool() and (
-            get("notify_for_admin_actions").asBool() or not user.admin
-        ):
-            session.add(
-                Notification.create(
-                    None,
-                    "notification.admin.reservation_modified",
-                    {
-                        "user": user.full_name,
-                        "shop": reservation.shop.name,
-                        "datetime-start_time": reservation.start_time.strftime(
-                            "%Y-%m-%d %H:%M"
-                        ),
-                        "duration": duration_minutes,
-                        "datetime-previous_start_time": previous_start_time.strftime(
-                            "%Y-%m-%d %H:%M"
-                        ),
-                        "previous_duration": previous_duration,
-                    },
-                    route=f"/shops/{reservation.shop.id}/{monday_str(start_time)}",
-                    is_reminder=False,
-                    mail=get("email_admin_reservation_modified").asBool(),
-                )
-            )
-
-        session.commit()
-        result = ReservedTimeRange.from_reservation(reservation, user)
     return result
 
 
@@ -399,14 +318,13 @@ def cancel_reservation(
                     "datetime-start_time": reservation.start_time.strftime(
                         "%Y-%m-%d %H:%M"
                     ),
-                    "duration": (
-                        reservation.end_time - reservation.start_time
-                    ).total_seconds()
-                    // 60,
+                    "duration": int(
+                        (reservation.end_time - reservation.start_time).total_seconds()
+                        // 60
+                    ),
                     "ics": reservation.ics_data(cancel=True),
                 },
                 route=f"/shops/{reservation.shop.id}/{monday_str(reservation.start_time)}",
-                is_reminder=False,
                 mail=get("email_reservation_cancelled").asBool(),
             )
         )
@@ -424,13 +342,12 @@ def cancel_reservation(
                         "datetime-start_time": reservation.start_time.strftime(
                             "%Y-%m-%d %H:%M"
                         ),
-                        "duration": (
-                            reservation.end_time - reservation.start_time
-                        ).total_seconds()
-                        // 60,
+                        "duration": int(
+                            (reservation.end_time - reservation.start_time).total_seconds()
+                            // 60
+                        ),
                     },
                     route=f"/shops/{reservation.shop.id}/{monday_str(reservation.start_time)}",
-                    is_reminder=False,
                     mail=get("email_admin_reservation_cancelled").asBool(),
                 )
             )
@@ -450,31 +367,8 @@ def validate_reservation(reservation_id: int) -> ReservedTimeRange:
         session.add(reservation)
         session.commit()
         session.refresh(reservation)
-    return ReservedTimeRange(
-        id=reservation.id,
-        start_time=reservation.start_time,
-        duration=reservation.end_time - reservation.start_time,
-        status=1,
-    )
-
-
-@router.get("/{user_id}/list_user", dependencies=[Depends(CurrentAdmin)])
-def get_reservations(user_id: int) -> list[ReservedTimeRange]:
-    """Get the reservations of a user"""
-    with SessionLock() as session:
-        user = session.get(User, user_id)
-        if user is None:
-            raise HTTPException(status_code=404, detail="error.user.not_found")
-        reservations = user.reservations
-    return [
-        ReservedTimeRange(
-            id=reservation.id,
-            start_time=reservation.start_time,
-            duration=reservation.end_time - reservation.start_time,
-            status=1 if reservation.validated else 2,
-        )
-        for reservation in reservations
-    ]
+        result = ReservedTimeRange.from_reservation(reservation, None)
+    return result
 
 
 @router.get("/list_self")
@@ -500,7 +394,7 @@ def get_user_reservations(
 def get_user_future_reservations(
     token: Annotated[Token, Depends(CurrentToken)],
 ) -> list[ReservedTimeRange]:
-    """Get the reservations of the current user"""
+    """Get the future reservations of the current user"""
     with SessionLock() as session:
         user = session.get(User, token.user_id)
         if user is None:
@@ -524,10 +418,7 @@ def search(
     user_id: int | None = Body(None),
     monday: str | None = Body(None),
 ) -> list[ReservedTimeRange]:
-    """Search the database for reservations.
-
-    If a search criteria is None, it is ignored.
-    """
+    """Search reservations by shop, user, and/or week."""
     with SessionLock() as session:
         query = select(Reservation)
         if shop_id is not None:
@@ -541,9 +432,7 @@ def search(
                 Reservation.start_time >= week_start, Reservation.start_time < week_end
             )
         reservations = session.exec(query)
-
         result = [ReservedTimeRange.from_reservation(res, None) for res in reservations]
-
     return result
 
 
@@ -574,10 +463,10 @@ def reassign_reservation(
                     "datetime-start_time": reservation.start_time.strftime(
                         "%Y-%m-%d %H:%M"
                     ),
-                    "duration": (
-                        reservation.end_time - reservation.start_time
-                    ).total_seconds()
-                    // 60,
+                    "duration": int(
+                        (reservation.end_time - reservation.start_time).total_seconds()
+                        // 60
+                    ),
                     "ics": reservation.ics_data(cancel=True),
                 },
                 mail=True,
@@ -592,10 +481,10 @@ def reassign_reservation(
                     "datetime-start_time": reservation.start_time.strftime(
                         "%Y-%m-%d %H:%M"
                     ),
-                    "duration": (
-                        reservation.end_time - reservation.start_time
-                    ).total_seconds()
-                    // 60,
+                    "duration": int(
+                        (reservation.end_time - reservation.start_time).total_seconds()
+                        // 60
+                    ),
                     "ics": reservation.ics_data(),
                 },
                 route=f"/shops/{reservation.shop.id}/{monday_str(reservation.start_time)}",
@@ -610,7 +499,7 @@ def reassign_reservation(
 
 @router.get("/all_data/{api_key}")
 def get_all_data(api_key: str) -> str:
-    """Get all the data from the database"""
+    """Export all reservations as CSV"""
     if get("api_key").value == "":
         raise HTTPException(status_code=403, detail="error.api_key_not_set")
     if api_key != get("api_key").value:
@@ -622,7 +511,6 @@ def get_all_data(api_key: str) -> str:
     output = StringIO()
 
     with SessionLock() as session:
-        # Dump all the reservations, the users and the shops associated, the duration of each reservation
         query = (
             select(Reservation)
             .order_by(Reservation.start_time)
@@ -652,7 +540,7 @@ def get_all_data(api_key: str) -> str:
                     "user_admin": res.user.admin,
                     "start_time": res.start_time,
                     "duration": (res.end_time - res.start_time).total_seconds()
-                    / (60 * 60),  # in hours
+                    / (60 * 60),
                 }
             )
     value = output.getvalue()

@@ -1,9 +1,45 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      target: backend-dev
     ports:
       - "8000:8000"
     volumes:
       - ./database.db:/app/database.db
     env_file: .env
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: ./shared_planner
+          target: /app/shared_planner
+        - action: sync
+          path: ./templates
+          target: /app/templates
+        - action: rebuild
+          path: ./pyproject.toml
+
+  ui:
+    build:
+      context: .
+      target: frontend-dev
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: ./web
+          target: /app/web
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: ./web/package.json
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
     restart: unless-stopped

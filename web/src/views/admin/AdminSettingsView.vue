@@ -1,5 +1,4 @@
 <template>
-    <EnsureLoggedIn require-admin />
     <DataTable :value="settings" dataKey="key" tableStyle="min-width: 60rem" size="large" stripedRows sort-field="group" :sort-order="1" removableSort
         :globalFilterFields="['key', 'value']" filterDisplay="row" v-model:filters="filters" editMode="row" @row-edit-save="saveRow"
         v-model:editingRows="editingRows" @row-edit-init="editingRows = [$event.data]" @row-edit-cancel="editingRows = []"
@@ -50,7 +49,6 @@
 
 <script setup lang="ts">
 import { type Setting } from '@/api/types';
-import EnsureLoggedIn from '@/components/EnsureLoggedIn.vue';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import IconField from 'primevue/iconfield';
@@ -115,7 +113,6 @@ onMounted(loadList);
 export default defineComponent({
     name: 'AdminSettingsView',
     components: {
-        EnsureLoggedIn,
         DataTable,
         Column,
         // eslint-disable-next-line vue/no-reserved-component-names

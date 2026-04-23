@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { ReservedTimeRange, Shop, User } from '@/api/types';
-import EnsureLoggedIn from '@/components/EnsureLoggedIn.vue';
 import ReservationItem from '@/components/list/ReservationItem.vue';
 import DatePicker from '@/components/primevue/DatePicker';
 import { reservationApi, shopApi, usersApi } from '@/main';
@@ -56,7 +55,6 @@ function search() {
 
 </script>
 <template>
-    <EnsureLoggedIn require-admin />
     <Toolbar class="m-4">
 
         <template #start>
@@ -101,7 +99,6 @@ function search() {
 export default defineComponent({
     name: 'AdminReservationsView',
     components: {
-        EnsureLoggedIn,
         Toolbar,
         // eslint-disable-next-line vue/no-reserved-component-names
         Select,

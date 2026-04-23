@@ -36,18 +36,20 @@ A collaborative planning application with calendar integration and email notific
 
 ### Backend Setup
 
-1. Install dependencies using Poetry:
+1. Install `uv` (if not already installed):
 ```sh
-poetry install
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-2. Set up environment variables:
+2. Install dependencies:
 ```sh
+uv sync
+```
+
+3. Set up environment variables:
+```sh
+cp .env.example .env  # If an example exists, otherwise create .env
 nano .env
-SMTP_SERVER=
-SMTP_PORT=
-SMTP_USER=
-SMTP_PASSWORD=
 ```
 
 ### Frontend Setup
@@ -57,27 +59,55 @@ SMTP_PASSWORD=
 cd web
 ```
 
-2. Install dependencies and build the frontend:
+2. Install dependencies:
 ```sh
 npm install
 ```
 
 ## Development
 
-### Running the Backend
+### Using Docker (Recommended)
+
+This project supports hot-reloading for both the UI and backend using Docker Compose.
+
+1. Start the services:
+   ```sh
+   docker compose up --build
+   ```
+
+2. (Optional) Enable Docker Compose Watch for automatic sync:
+   ```sh
+   docker compose watch
+   ```
+
+The Backend will be available at `http://localhost:8000` and the UI at `http://localhost:5173`.
+
+### Manual Running
+
+**Backend:**
 ```sh
-poetry run python -m shared_planner
+uv run python -m shared_planner
 ```
 
-### Running the Frontend
+**Frontend:**
 ```sh
 cd web
 npm run dev
 ```
 
-The application will be available at http://localhost:5173
+## Production
 
-### Production Build
+### Using Docker
+
+The production setup bundles the UI and Backend into a single optimized container.
+
+1. Build and run:
+   ```sh
+   docker compose -f docker-compose.prod.yml up --build -d
+   ```
+The application will be available at `http://localhost:8000`.
+
+### Manual Build
 
 1. Build the frontend:
 ```sh
@@ -85,11 +115,9 @@ cd web
 npm run build
 ```
 
-2. Configure your web server to serve the static files from `web/dist`
-
-3. Run the backend with a production WSGI server:
+2. Run the backend with a production server:
 ```sh
-poetry run gunicorn shared_planner.main:app
+uv run gunicorn -w 4 -k uvicorn.workers.UvicornWorker shared_planner.api:app --bind 0.0.0.0:8000
 ```
 
 ## Configuration

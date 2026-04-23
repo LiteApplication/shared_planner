@@ -1,19 +1,19 @@
 import { api } from ".";
-import type { BookRangeRequest, ReservedTimeRange } from "./types";
+import type { BookSlotRequest, BookMultipleSlotsRequest, ReservedTimeRange, SlotStatus } from "./types";
 
 export default class ReservationApi {
-    async getPlanning(shopId: number, monday: string): Promise<ReservedTimeRange[][]> {
+    async getPlanning(shopId: number, monday: string): Promise<SlotStatus[][]> {
         const result = await api.get(`/res/${shopId}/${monday}/list`);
         return result.data;
     }
 
-    async reserve(shopId: number, range: BookRangeRequest): Promise<ReservedTimeRange> {
-        const result = await api.post(`/res/${shopId}/book`, range);
+    async bookSlot(shopId: number, req: BookSlotRequest): Promise<ReservedTimeRange> {
+        const result = await api.post(`/res/${shopId}/book`, req);
         return result.data;
     }
 
-    async update(reservationId: number, range: BookRangeRequest): Promise<ReservedTimeRange> {
-        const result = await api.put(`/res/${reservationId}/update`, range);
+    async bookSlots(shopId: number, req: BookMultipleSlotsRequest): Promise<ReservedTimeRange> {
+        const result = await api.post(`/res/${shopId}/book_multiple`, req);
         return result.data;
     }
 
@@ -33,6 +33,7 @@ export default class ReservationApi {
         const result = await api.get(`/res/${userId}/list_user`);
         return result.data;
     }
+
     async myReservations(): Promise<ReservedTimeRange[]> {
         const result = await api.get(`/res/list_self_future`);
         return result.data;

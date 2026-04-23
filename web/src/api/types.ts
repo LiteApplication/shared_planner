@@ -32,7 +32,6 @@ type Shop = {
     description: string,
     location: string,
     maps_link: string
-    volunteers: number,
     min_time: number,
     max_time: number,
     available_from: string,
@@ -65,7 +64,6 @@ const exampleShop: Shop = {
     description: "",
     location: "",
     maps_link: "https://maps.app.goo.gl/...",
-    volunteers: 0,
     min_time: 0,
     max_time: 0,
     available_from: "0000-00-00",
@@ -92,6 +90,36 @@ const exampleOpenRange: OpenRange = {
 const exampleShopWithOpenRange: ShopWithOpenRange = {
     ...exampleShop,
     open_ranges: [exampleOpenRange]
+}
+
+type TimeSlot = {
+    id: number,
+    shop_id: number,
+    day: number,
+    start_time: string,   // "HH:MM:SS"
+    end_time: string,     // "HH:MM:SS"
+    max_volunteers: number,
+    valid_from: string,   // "YYYY-MM-DD"
+    valid_until: string   // "YYYY-MM-DD"
+}
+
+type SlotStatus = {
+    slot: TimeSlot,
+    date: string,         // "YYYY-MM-DD"
+    booked_count: number,
+    booked_by_me: boolean,
+    reservation_id: number | null,
+    validated: boolean
+}
+
+type BookSlotRequest = {
+    time_slot_id: number,
+    date: string          // "YYYY-MM-DD"
+}
+
+type BookMultipleSlotsRequest = {
+    time_slot_ids: number[],
+    date: string          // "YYYY-MM-DD"
 }
 
 type BookRangeRequest = {
@@ -136,5 +164,5 @@ const exampleNotification: Notification = {
 
 
 
-export type { TokenResponse, User, Shop, OpenRange, ShopWithOpenRange, ReservedTimeRange, BookRangeRequest, Setting, Notification }
+export type { TokenResponse, User, Shop, OpenRange, ShopWithOpenRange, ReservedTimeRange, TimeSlot, SlotStatus, BookSlotRequest, BookRangeRequest, Setting, Notification }
 export { exampleShop, exampleReservedTimeRange, exampleOpenRange, exampleShopWithOpenRange, exampleUser, exampleNotification }

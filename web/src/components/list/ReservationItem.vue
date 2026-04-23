@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
 import { type ShopWithOpenRange, type ReservedTimeRange, type Shop, type User } from '@/api/types';
-import { date_start_end, getMonday, networkDateTime } from '@/utils';
+import { date_start_end, getMonday } from '@/utils';
 import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
 import { computed, defineComponent, onMounted, ref, type PropType } from 'vue';
@@ -106,27 +106,26 @@ function gotoReservation() {
     });
 }
 
-function updateReservation(startDate: Date, endDate: Date) {
-    if (userModel.value !== null) {
-        reservationApi.reassign(props.reservation.id!, userModel.value.id).then(
-            () => {
-                emit('update:reservation', { ...props.reservation, start_time: networkDateTime(startDate), duration_minutes: (endDate.getTime() - startDate.getTime()) / 1000 / 60, user: userModel.value });
-                editVisible.value = false;
-            }
-        ).catch(
-            handleError(toast, $t, "error.reservation.not_updated")
-        );
+function updateReservation(_startDate: Date, _endDate: Date, user: User | null, validated: boolean) {
+    const tasks: Promise<unknown>[] = [];
+
+    if (user !== null && user.id !== undefined) {
+        tasks.push(reservationApi.reassign(props.reservation.id!, user.id));
     }
-    reservationApi.update(props.reservation.id!,
-        { duration_minutes: (endDate.getTime() - startDate.getTime()) / 1000 / 60, start_time: networkDateTime(startDate) }
-    ).then(
-        () => {
-            emit('update:reservation', { ...props.reservation, start_time: networkDateTime(startDate), duration_minutes: (endDate.getTime() - startDate.getTime()) / 1000 / 60 });
-            editVisible.value = false;
-        }
-    ).catch(
-        handleError(toast, $t, "error.reservation.not_updated")
-    );
+
+    if (validated && !props.reservation.validated) {
+        tasks.push(reservationApi.validate(props.reservation.id!));
+    }
+
+    if (tasks.length === 0) {
+        editVisible.value = false;
+        return;
+    }
+
+    Promise.all(tasks).then(() => {
+        emit('update:reservation', { ...props.reservation, validated });
+        editVisible.value = false;
+    }).catch(handleError(toast, $t, 'error.reservation.not_updated'));
 }
 
 function deleteReservation() {

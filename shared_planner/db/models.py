@@ -66,12 +66,14 @@ class Shop(SQLModel, table=True):
     location: str  # Location of the shop (displayed)
     maps_link: str  # Google Maps link of the shop
     description: str  # Description of the shop (displayed)
-    volunteers: int  # Number of volunteers max in the shop
     min_time: int  # Minimum time for a reservation (in minutes)
     max_time: int  # Maximum time for a reservation (in minutes)
     available_from: datetime.datetime  # Date from which the shop is available
     available_until: datetime.datetime  # Date until which the shop is available
     open_ranges: list["OpeningTime"] = Relationship(
+        back_populates="shop", cascade_delete=True
+    )
+    time_slots: list["TimeSlot"] = Relationship(
         back_populates="shop", cascade_delete=True
     )
     reservations: list["Reservation"] = Relationship(
@@ -90,6 +92,22 @@ class OpeningTime(SQLModel, table=True):
     end_time: datetime.time
 
 
+class TimeSlot(SQLModel, table=True):
+    """Recurring time slot for a shop (day-of-week based, with validity period)"""
+
+    id: int = Field(primary_key=True, default=None)
+    shop_id: int = Field(foreign_key="shop.id")
+    shop: Shop = Relationship(back_populates="time_slots")
+    reservations: list["Reservation"] = Relationship(back_populates="time_slot")
+
+    day: int  # 0=Monday … 6=Sunday
+    start_time: datetime.time
+    end_time: datetime.time
+    max_volunteers: int
+    valid_from: datetime.date
+    valid_until: datetime.date
+
+
 class Reservation(SQLModel, table=True):
     """Represents a reservation in the database"""
 
@@ -98,6 +116,8 @@ class Reservation(SQLModel, table=True):
     user: User = Relationship(back_populates="reservations")
     shop_id: int = Field(foreign_key="shop.id")
     shop: Shop = Relationship(back_populates="reservations")
+    time_slot_id: int | None = Field(default=None, foreign_key="timeslot.id")
+    time_slot: TimeSlot | None = Relationship(back_populates="reservations")
     start_time: datetime.datetime
     end_time: datetime.datetime
     validated: bool = False

@@ -1,5 +1,4 @@
 <template>
-    <EnsureLoggedIn require-admin />
     <DataTable :value="users" dataKey="id" tableStyle="min-width: 60rem" size="large" stripedRows sort-field="group" :sort-order="1" removableSort
         :globalFilterFields="['full_name', 'email', 'group']" filterDisplay="row" v-model:filters="filters" editMode="row" @row-edit-save="saveRow"
         v-model:editingRows="editingRows" @row-edit-init="onRowEditInit" @row-edit-cancel="editingRows = []" v-model:selection="selectedUsers">
@@ -67,7 +66,6 @@
 
 <script setup lang="ts">
 import { exampleUser, type User } from '@/api/types';
-import EnsureLoggedIn from '@/components/EnsureLoggedIn.vue';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
@@ -221,7 +219,6 @@ const deleteSelectedUsers = async () => {
 export default defineComponent({
     name: 'AdminUsersView',
     components: {
-        EnsureLoggedIn,
         DataTable,
         Column,
         IconField,

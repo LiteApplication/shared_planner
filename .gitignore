@@ -3,3 +3,4 @@ dummy_data.json
 **.pyc
 .env
 .vscode/
+.env.prod

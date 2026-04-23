@@ -29,8 +29,8 @@ const router = createRouter({
       component: () => import('../views/ReservationsView.vue')
     },
     {
-      path: "/shops",
-      name: "shops",
+      path: '/shops',
+      name: 'shops',
       component: () => import('../views/ShopsView.vue')
     },
     {
@@ -39,24 +39,30 @@ const router = createRouter({
       component: () => import('../views/ShopView.vue')
     },
     {
-      path: "/admin/users",
-      name: "admin-users",
-      component: () => import('../views/admin/AdminUsersView.vue')
-    },
-    {
-      path: "/admin/shops",
-      name: "admin-shops",
-      component: () => import('../views/admin/AdminShopsView.vue')
-    },
-    {
-      path: "/admin/reservations",
-      name: "admin-reservations",
-      component: () => import('../views/admin/AdminReservationsView.vue')
-    },
-    {
-      path: "/admin/settings",
-      name: "admin-settings",
-      component: () => import('../views/admin/AdminSettingsView.vue')
+      path: '/admin',
+      component: () => import('../views/admin/AdminLayout.vue'),
+      children: [
+        {
+          path: 'shops',
+          name: 'admin-shops',
+          component: () => import('../views/admin/AdminShopsView.vue')
+        },
+        {
+          path: 'reservations',
+          name: 'admin-reservations',
+          component: () => import('../views/admin/AdminReservationsView.vue')
+        },
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: () => import('../views/admin/AdminUsersView.vue')
+        },
+        {
+          path: 'settings',
+          name: 'admin-settings',
+          component: () => import('../views/admin/AdminSettingsView.vue')
+        }
+      ]
     }
   ]
 })

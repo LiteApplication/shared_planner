@@ -16,6 +16,7 @@ import Ripple from 'primevue/ripple';
 import AuthApi from './api/auth';
 import ShopApi from './api/shop';
 import ReservationApi from './api/reservation';
+import SlotsApi from './api/slots';
 import UsersApi from './api/users';
 import SettingsApi from './api/settings';
 import NotificationsApi from './api/notifications';
@@ -26,6 +27,9 @@ const app = createApp(App);
 app.use(PrimeVue, {
     theme: {
         preset: Aura,
+        options: {
+            darkModeSelector: 'system',
+        },
         ripple: true,
     },
     locale: {
@@ -55,8 +59,9 @@ app.mount('#app')
 const authApi: AuthApi = new AuthApi();
 const shopApi: ShopApi = new ShopApi();
 const reservationApi: ReservationApi = new ReservationApi();
+const slotsApi: SlotsApi = new SlotsApi();
 const usersApi: UsersApi = new UsersApi();
 const settingsApi: SettingsApi = new SettingsApi();
 const notificationsApi = new NotificationsApi();
 
-export { authApi, shopApi, reservationApi, usersApi, settingsApi, notificationsApi };
+export { authApi, shopApi, reservationApi, slotsApi, usersApi, settingsApi, notificationsApi };

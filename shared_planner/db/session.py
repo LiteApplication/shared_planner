@@ -6,6 +6,7 @@ from shared_planner.db.models import (
     User,
     Shop,
     OpeningTime,
+    TimeSlot,
     Reservation,
     Token,
     Notification,
@@ -25,6 +26,18 @@ class Singleton(type):
         return cls._instances[cls]
 
 
+def _run_migrations(engine: Engine) -> None:
+    from sqlalchemy import inspect, text
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    if "reservation" in tables:
+        cols = [c["name"] for c in inspector.get_columns("reservation")]
+        if "time_slot_id" not in cols:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE reservation ADD COLUMN time_slot_id INTEGER REFERENCES timeslot(id)"))
+                conn.commit()
+
+
 class EngineContainer(metaclass=Singleton):
     engine: Engine
 
@@ -33,6 +46,7 @@ class EngineContainer(metaclass=Singleton):
             "sqlite:///database.db", pool_timeout=10, max_overflow=50, pool_size=5
         )
         SQLModel.metadata.create_all(self.engine)
+        _run_migrations(self.engine)
 
 
 @contextmanager

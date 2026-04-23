@@ -11,7 +11,7 @@
 
         </div>
         <div class="timeline-container" :style="cssVars">
-            <div v-for="(task, index) in sortedTasksWithRows" class="task rounded" :class="{ disabled: task.title == null }" :key="index"
+            <div v-for="(task, index) in sortedTasksWithRows" class="task rounded" :class="{ disabled: task.title == null, 'task-selected': task.selected }" :key="index"
                 :style="taskStyle(task)" v-tooltip="{
                     value: `<h3 style='font-weight: bold'>${task.title}</h3><p>${task.description}</p>`,
                     escape: false, hideDelay: 0
@@ -87,7 +87,7 @@ export default defineComponent({
             };
         },
         sortedTasksWithRows() {
-            const sorted: Task[] = [...this.tasks].sort((a, b) => a.start_time - b.start_time);
+            const sorted: Task[] = this.tasks.map((task) => ({ ...task })).sort((a, b) => a.start_time - b.start_time);
             // Initialize an array to keep track of the end times of the rows
             let rows: number[] = [];
             let availableRows = 0;
@@ -209,7 +209,7 @@ export default defineComponent({
     display: flex;
     align-items: end;
     height: 100%;
-    cursor: zoom-in;
+    cursor: default;
 }
 
 .time-label {
@@ -220,7 +220,7 @@ export default defineComponent({
 .task {
     position: absolute;
     left: calc(5 * 0.8rem);
-    width: 1rem;
+    width: 0.85rem;
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -228,6 +228,13 @@ export default defineComponent({
     transition: width 0.3s;
     box-sizing: border-box;
     pointer-events: auto;
+    margin-top: 2px;
+    border-radius: 3px;
+}
 
+.task-selected {
+    outline: 2px solid white;
+    outline-offset: -2px;
+    filter: brightness(1.2);
 }
 </style>
