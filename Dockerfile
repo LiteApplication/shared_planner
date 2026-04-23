@@ -21,12 +21,14 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-install-project
 
 COPY shared_planner/ ./shared_planner/
 COPY templates/ ./templates/
+COPY entrypoint.sh ./
 COPY --from=frontend-builder /app/dist ./web/dist
 
+RUN uv sync --frozen --no-dev && chmod +x entrypoint.sh
+
 EXPOSE 8000
-CMD ["uv", "run", "gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", \
-     "shared_planner.api:app", "--bind", "0.0.0.0:8000"]
+CMD ["./entrypoint.sh"]

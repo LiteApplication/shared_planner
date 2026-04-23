@@ -50,7 +50,7 @@ def create_user(
 
 @router.post("/request_password_reset", dependencies=[Depends(CurrentAdmin)])
 def request_password_reset(
-    email: dict = Body(example={"email": "test@test.com"}),
+    email: dict = Body(examples=[{"email": "test@test.com"}]),
 ) -> None:
     """Request a password reset for a user"""
     email_address = email.get("email")
